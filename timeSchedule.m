@@ -13,16 +13,26 @@ classdef timeSchedule < handle
     end
     
     properties
-        schedule % Structure array. Concrete schedule of activities
-        % Fields:
-        % - name
-        % - start
-        % - duration
-        % - fixedStart
-        % - activityType
+        schedule     
+        % Table
+        % Variables:
+        %   Normal variables
+        %       - Name
+        %       - Start
+        %       - Duration
+        %       - Tags
+        %   Planning variables
+        %       - FixedStart
+        %       - FixedDuration
+        %       - FixedEnd
+        
     end
     
-    properties(Access = private)
+    properties(Constant)
+        scheduleVariableNames = {'Name', 'Start', 'Duration', 'Tags', 'FixedStart', 'FixedDuration', 'FixedEnd'};
+    end
+    
+    properties(Access = public)
         % GUI
         f
         ax
@@ -39,8 +49,8 @@ classdef timeSchedule < handle
         editDur
         editEnd
         
-        table
-        tableSelectedCellIndices
+        tableGUI
+        tableGUISelectedCellIndices
         
         upButton
         downButton
@@ -50,7 +60,7 @@ classdef timeSchedule < handle
     
     properties(Dependent)
         % Activities
-        activityTypes
+        types
         typeDurations
         numTypes
         
@@ -58,8 +68,12 @@ classdef timeSchedule < handle
         names
         durations
         starts
+        ends
         fixedStarts
+        fixedDurations
+        fixedEnds
         tags
+        activityTypes
         numActivities
     end
     
@@ -67,12 +81,12 @@ classdef timeSchedule < handle
     methods
         
         % Activities
-        function activityTypes = get.activityTypes(obj)            
-            activityTypes = obj.getActivityNames(1:obj.numTypes);
+        function types = get.types(obj)            
+            types = obj.getType(1:obj.numTypes);
         end
         
         function typeDurations = get.typeDurations(obj)
-            typeDurations = obj.getActivityDurations(1:obj.numTypes);
+            typeDurations = obj.getTypeDuration(1:obj.numTypes);
         end
         
         function numTypes = get.numTypes(obj)
@@ -82,32 +96,35 @@ classdef timeSchedule < handle
         function set.activities(obj, value)
             obj.activities = value;
             obj.updateColormap();
-            obj.table.ColumnFormat(end) = {obj.activityTypes};
         end
         
         % Schedule       
         function names = get.names(obj)            
-            names = obj.getScheduleNames(1:obj.numActivities);
+            names = obj.getName(1:obj.numActivities);
         end
         
         function durations = get.durations(obj)
-            durations = obj.getScheduleDurations(1:obj.numActivities);
+            durations = obj.getDuration(1:obj.numActivities);
         end
         
         function starts = get.starts(obj)
-            starts = obj.getScheduleStarts(1:obj.numActivities);
+            starts = obj.getStart(1:obj.numActivities);
         end
         
         function numActivities = get.numActivities(obj)
-            numActivities = numel(obj.schedule);
+            numActivities = size(obj.schedule, 1);
         end
         
         function tags = get.tags(obj)
-            tags = obj.getScheduleActivityTypes(1:obj.numActivities);
+            tags = obj.getTags(1:obj.numActivities);
+        end
+        
+        function activityTypes = get.activityTypes(obj)
+            activityTypes = getActivityType(obj, 1:obj.numActivities);
         end
         
         function fixedStarts = get.fixedStarts(obj)
-            fixedStarts = obj.getFixedStarts(1:obj.numActivities);
+            fixedStarts = obj.getFixedStart(1:obj.numActivities);
         end
                 
     end
@@ -125,6 +142,7 @@ classdef timeSchedule < handle
             obj.f = figure;
             obj.f.WindowButtonMotionFcn = @(src, callbackdata) obj.windowMotionCallback(src, callbackdata);
             obj.f.WindowButtonUpFcn = @(src, callbackdata) obj.windowButtonUpCallback(src, callbackdata);
+            obj.f.DeleteFcn = @(src, callbackdata) obj.deleteFigure();
             
             % Axes
             obj.ax = axes(obj.f, 'Units', 'normalized', 'OuterPosition', [0 0.5 0.8 0.5]);
@@ -164,12 +182,12 @@ classdef timeSchedule < handle
             posTable = [0 0 0.5 0.5];
             columnNames = {'Name', 'Start', 'Duration', 'End', 'FixedStart', 'Act. Type'};
             columnFormat = {'char', 'char', 'numeric', 'char', 'logical', {'Default'}};
-            columnEditable = [true, true, true, true, true, true];
-            obj.table = uitable(obj.f, 'Units', 'Normalized', 'Position', posTable,...
+            columnEditableGUI = [true, true, true, true, true, true];
+            obj.tableGUI = uitable(obj.f, 'Units', 'Normalized', 'Position', posTable,...
                 'ColumnName', columnNames, 'ColumnFormat', columnFormat,...
-                'ColumnEditable', columnEditable, 'CellEditCallback', @(hObject, eventData) obj.tableCellEditCallback(hObject, eventData),...
-                'CellSelectionCallback', @(hObj, evntdata) obj.tableCellSelectionCallback(hObj, evntdata));
-            obj.table.Data = {};
+                'ColumnEditable', columnEditableGUI, 'CellEditCallback', @(hObject, eventData) obj.tableGUICellEditCallback(hObject, eventData),...
+                'CellSelectionCallback', @(hObj, evntdata) obj.tableGUICellSelectionCallback(hObj, evntdata));
+            obj.tableGUI.Data = {};
             
             
             % Up and down buttons
@@ -182,35 +200,31 @@ classdef timeSchedule < handle
             obj.downButton = uicontrol(obj.f, 'Style', 'pushbutton', 'Units', 'normalized', 'Position', posDownButton,...
                 'String', 'Down', 'Callback', @(hObject, eventdata, handles) obj.moveSchedActCallback('down'));
             obj.addButton = uicontrol(obj.f, 'Style', 'pushbutton', 'Units', 'normalized', 'Position', posAddButton,...
-                'String', 'Add', 'Callback', @(hObject, eventdata, handles) obj.addSchedActivity(obj.tableSelectedCellIndices(1)));
+                'String', 'Add', 'Callback', @(hObject, eventdata, handles) obj.addSchedActivity(obj.tableGUISelectedCellIndices(:, 1)));
             obj.deleteButton = uicontrol(obj.f, 'Style', 'pushbutton', 'Units', 'normalized', 'Position', posDeleteButtion,...
-                'String', 'Delete', 'Callback', @(hObject, eventdata, handles) obj.deleteScheduledActivity(obj.tableSelectedCellIndices(1)));
+                'String', 'Delete', 'Callback', @(hObject, eventdata, handles) obj.deleteScheduledActivity(obj.tableGUISelectedCellIndices(:, 1)));
         end
         
         function generateSchedule(obj, activityTypes, fixedStartInd, fixedStarts)
             
             N = numel(activityTypes);
-            obj.schedule = repmat(...
-                struct(...
-                'name', [],...
-                'start', NaT,...
-                'duration', [],...
-                'fixedStart', false,...
-                'activityType', []...
-                ), N, 1);
+                        
+            obj.schedule = table(cell(N, 1), NaT(N, 1), minutes(zeros(N, 1)), cell(N, 1), ...
+                false(N, 1), false(N, 1), false(N, 1), 'VariableNames', obj.scheduleVariableNames);
+            obj.schedule.Start.Format = 'dd-MM hh:mm';
             
-            obj.setScheduleNames(activityTypes);
+            obj.setName(activityTypes);
             
-            notFound = ~ismember(activityTypes, obj.activityTypes);
+            notFound = ~ismember(activityTypes, obj.types);
             activityTypes(notFound) = {'Default'};
-            obj.setScheduleActivityTypes(activityTypes);
+            obj.setActivityType(activityTypes);
             
-            durs = obj.getActivityDurations(activityTypes);
-            obj.setScheduleDurations(durs);
+            durs = obj.getTypeDuration(activityTypes);
+            obj.setDuration(durs);
             
             if nargin == 4
-                obj.setScheduleStarts(fixedStarts, fixedStartInd);
-                obj.setFixedStarts(true(numel(fixedStartInd), 1), fixedStartInd);
+                obj.setStart(fixedStarts, fixedStartInd);
+                obj.setFixedStart(true(numel(fixedStartInd), 1), fixedStartInd);
             end
             
             obj.orderSchedule();
@@ -224,47 +238,50 @@ classdef timeSchedule < handle
             fixedStart = find(obj.fixedStarts);
             if ~ismember(1, fixedStart)
                 fixedStart = [1; fixedStart];
-                obj.setScheduleStarts(obj.startingTime, 1);
+                obj.setStart(obj.startingTime, 1);
             end
             fixedStart = [fixedStart; obj.numActivities+1]; 
             
             startsSched = obj.starts;
             
-            starts = NaT(obj.numActivities, 1);
-            starts(fixedStart(1:end-1)) = startsSched(fixedStart(1:end-1));
+            start = NaT(obj.numActivities, 1);
+            start(fixedStart(1:end-1)) = startsSched(fixedStart(1:end-1));
             for k = 1:numel(fixedStart)-1
                 ind = fixedStart(k):fixedStart(k+1)-1; % Indices to adjust
-                startRef = starts(fixedStart(k));
-                starts(ind) = [startRef; startRef + cumsum(durs(ind(1:end-1)))];
+                startRef = start(fixedStart(k));
+                start(ind) = [startRef; startRef + cumsum(durs(ind(1:end-1)))];
 
                 if k < numel(fixedStart)-1
                     lastInd = fixedStart(k+1)-1;             
                     lastDur = durs(lastInd);
-                    lastStart = starts(lastInd);
-                    beyondStart = starts(lastInd + 1);
+                    lastStart = start(lastInd);
+                    beyondStart = start(lastInd + 1);
                     cut = lastStart + lastDur - beyondStart;
                     
                     if cut > 0
                         nextInd = fixedStart(k+1);
-                        nextFixedStart = starts(nextInd);
+                        nextFixedStart = start(nextInd);
                         
-                        overload = starts(ind) + durs(ind) > nextFixedStart;
+                        overload = start(ind) + durs(ind) > nextFixedStart;
                         
-                        starts(lastInd-(sum(overload)-1):lastInd) = starts(lastInd-(sum(overload)-1):lastInd) - cut;
+                        start(lastInd-(sum(overload)-1):lastInd) = start(lastInd-(sum(overload)-1):lastInd) - cut;
                     end
                 end
                 
             end
             
-            obj.setScheduleStarts(starts);
+            obj.setStart(start);
         end
         
         function viewSchedule(obj)
 
             % Prepare figure and axes
             if ~isvalid(obj.f)
+                % If there is no figure
                 obj.createGUI();
-            elseif ~all(isempty(obj.activityShapes)) && all(isvalid(obj.activityShapes))
+            elseif ~isempty(obj.activityShapes) && any(isvalid(obj.activityShapes))
+                % If there are activityShapes that are still valid
+                % (drawed), delete them.
                 obj.userMode = false;
                 delete(obj.activityShapes)
                 cla(obj.ax);
@@ -272,13 +289,12 @@ classdef timeSchedule < handle
             end
                         
             % Create rectangles. One rectange per activity
-            names = obj.names;
-            actTypes = obj.tags();
-            [~, mapSchedToAct] = ismember(actTypes, obj.activityTypes);
+            names_ = obj.names;
+            [~, mapSchedToAct] = ismember(obj.activityTypes, obj.types);
             N = obj.numActivities;
             obj.activityShapes = gobjects(N, 1);
             for n = 1:N
-                r = rectangle(obj.ax, 'FaceColor', obj.cmap(mapSchedToAct(n), :), 'Tag', names{n});
+                r = rectangle(obj.ax, 'FaceColor', obj.cmap(mapSchedToAct(n), :), 'Tag', names_{n});
                 r.ButtonDownFcn = @(src, eventdata) obj.shapeButtonDownCallback(src, eventdata);
                 r.DeleteFcn = @(src, eventdata) obj.beingDeletedCallback(src, eventdata);
                 obj.activityShapes(n) = r;
@@ -290,45 +306,46 @@ classdef timeSchedule < handle
         
         function addSchedActivity(obj, index, activityType)
             
-            if nargin < 3 || ~ismember(activityType, obj.activityTypes)
+            if nargin < 3 || ~ismember(activityType, obj.tableGUI)
                 activityType = 'Default';
             end
             
-            start = obj.getScheduleStarts(index);
+            start = obj.getStart(index);
+            if isempty(start)
+                start = obj.startingTime;
+            end
             
-            s = struct(...
-                'name', 'Sin nombre',...
-                'start', start,...
-                'duration', hours(1),...
-                'fixedStart', false,...
-                'activityType', activityType);
-                
-            newSchedule = [obj.schedule; s];
-            newSchedule(index+1:end) = newSchedule(index:obj.numActivities);
-            newSchedule(index) = s;
-            
-            obj.schedule = newSchedule;
-            
+            newRow = table({'Sin nombre'}, start, hours(1), {{activityType}}, false, false, false, 'VariableNames', obj.scheduleVariableNames);
+                            
+            obj.schedule = [obj.schedule(1:index-1, :); newRow; obj.schedule(index:end, :)];
+                        
             obj.viewSchedule();
         end
          
         function deleteScheduledActivity(obj, ind)
-            obj.schedule(ind) = [];
+            obj.schedule(ind, :) = [];
+            obj.userMode = false;
+            delete(obj.activityShapes(ind));
+            obj.userMode = true;
             obj.activityShapes(ind) = [];
             obj.updateGUI();
         end
         
         function exportSchedule(obj, filename)
             if nargin == 1
-                filename = 'tabledata.txt';
+                filename = 'tableGUIdata.txt';
             end
             
-            T = cell2table(obj.table.Data(:, [1, 2, 4]), 'VariableNames', {'Name','Start', 'End'});
-            writetable(T, filename);
+            T = cell2tableGUI(obj.tableGUI.Data(:, [1, 2, 4]), 'VariableNames', {'Name','Start', 'End'});
+            writetableGUI(T, filename);
         end
         
         % GUI        
-        function windowMotionCallback(obj, src, callbackdata) 
+        function deleteFigure(obj)
+            obj.userMode = false;
+        end
+        
+        function windowMotionCallback(obj, ~, ~) 
             if ~isempty(obj.activeShape)
 %                 fprintf('Current Point: [%g, %g]\n', obj.ax.CurrentPoint(1), obj.ax.CurrentPoint(3));
                 currPoint = obj.ax.CurrentPoint(1, [1, 2]);
@@ -338,20 +355,20 @@ classdef timeSchedule < handle
                 
                 % Update new starting value in schedule structure
                 newStart = hours(xPos) + obj.axXLimTime(1);
-                obj.setScheduleStarts(newStart, obj.indActiveSchedAct );
+                obj.setStart(newStart, obj.indActiveSchedAct );
                 drawnow;
                 
                 obj.updateGUI(obj.indActiveSchedAct );
             end
         end
         
-        function windowButtonUpCallback(obj, src, callbackdata)
+        function windowButtonUpCallback(obj, ~, ~)
             obj.activeShape = [];
 %             obj.indActiveSchedAct  = []; % This is commented so you remember
 %             that you don't have to put it here. Trust me.
         end
         
-        function shapeButtonDownCallback(obj, src, eventdata)
+        function shapeButtonDownCallback(obj, src, ~)
             fprintf('Active Shape: %s\n', src.Tag);
             obj.activeShape = src;
             obj.refAxPointPos = obj.ax.CurrentPoint(1, [1, 2]);
@@ -360,7 +377,7 @@ classdef timeSchedule < handle
             obj.updateEdits();
         end
         
-        function tableCellEditCallback(obj, hObject, callbackData)
+        function tableGUICellEditCallback(obj, ~, callbackData)
             newData = callbackData.NewData;
             indSched = callbackData.Indices(1);
             fieldNames = {'name', 'start', 'duration', 'end', 'fixedStart', 'activityType'};
@@ -372,10 +389,10 @@ classdef timeSchedule < handle
                     HHMM = strsplit(newData, ':');
                     HH = HHMM{1};
                     MM = HHMM{2};
-                    start = obj.getScheduleStarts(indSched);
+                    start = obj.getStart(indSched);
                     start.Hour = str2double(HH);
                     start.Minute = str2double(MM);
-                    obj.setScheduleStarts(start, indSched);
+                    obj.setStart(start, indSched);
                 case 'duration'
                     dur = minutes(newData);
                     if ~isnan(dur)
@@ -385,8 +402,8 @@ classdef timeSchedule < handle
                     HHMM = strsplit(newData, ':');
                     HH = HHMM{1};
                     MM = HHMM{2};
-                    start = obj.getScheduleStarts(indSched);
-                    dur = obj.getScheduleDurations(indSched);
+                    start = obj.getStart(indSched);
+                    dur = obj.getDuration(indSched);
                     ending = start + dur;
                     ending.Hour = str2double(HH);
                     ending.Minute = str2double(MM);
@@ -401,13 +418,13 @@ classdef timeSchedule < handle
             obj.updateGUI();
         end
         
-        function tableCellSelectionCallback(obj, hObject, callbackData)
-            obj.tableSelectedCellIndices = callbackData.Indices;
+        function tableGUICellSelectionCallback(obj, ~, callbackData)
+            obj.tableGUISelectedCellIndices = callbackData.Indices;
         end
         
         function moveSchedActCallback(obj, type)           
-            if ~isempty(obj.tableSelectedCellIndices)
-                indSchedOrig = obj.tableSelectedCellIndices(1);
+            if ~isempty(obj.tableGUISelectedCellIndices)
+                indSchedOrig = obj.tableGUISelectedCellIndices(1);
                 switch type
                     case 'up'
                         desp = -1;
@@ -432,7 +449,6 @@ classdef timeSchedule < handle
         
         function updateGUI(obj, indices)
             if obj.userMode
-                
                 if nargin == 2
                     obj.updateEdits();
                     obj.updateTable(indices);
@@ -448,9 +464,9 @@ classdef timeSchedule < handle
         end
         
         function updateEdits(obj)
-            name = obj.getScheduleNames(obj.indActiveSchedAct );
-            start = obj.getScheduleStarts(obj.indActiveSchedAct );
-            dur = obj.getScheduleDurations(obj.indActiveSchedAct );
+            name = obj.getName(obj.indActiveSchedAct );
+            start = obj.getStart(obj.indActiveSchedAct );
+            dur = obj.getDuration(obj.indActiveSchedAct );
             ending = start + dur;
             
             obj.editName.String = name;
@@ -464,27 +480,33 @@ classdef timeSchedule < handle
                 indices = 1:obj.numActivities;
             end
             
-            names = obj.getScheduleNames(indices);
-            start = obj.getScheduleStarts(indices);
+            names_ = obj.getName(indices);
+            start = obj.getStart(indices);
             startCol = cellstr(datestr(start, 'HH:MM'));
-            dur = obj.getScheduleDurations(indices);
-            durationCol = num2cell(minutes(obj.getScheduleDurations(indices)));
-            ends = cellstr(datestr(start + dur, 'HH:MM'));
-            types = obj.getScheduleActivityTypes(indices);
-            data = [names, startCol, durationCol, ends, num2cell(obj.getFixedStarts(indices)), types];
+            dur = obj.getDuration(indices);
+            durationCol = num2cell(minutes(obj.getDuration(indices)));
+            ends_ = cellstr(datestr(start + dur, 'HH:MM'));
+            types_ = obj.getActivityType(indices);
+            data = [names_, startCol, durationCol, ends_, num2cell(obj.getFixedStart(indices)), types_];
             
             if nargin == 1
-                obj.table.Data = data; % For the first time
+                obj.tableGUI.Data = data; % For the first time
             else
-                obj.table.Data(indices, :) = data;
+                obj.tableGUI.Data(indices, :) = data;
             end
         end
         
         function setAxesProperties(obj)
             % Set axes properties
                 % Axes X Limits
-            axStart = obj.getScheduleStarts(1);
-            axEnd = obj.getScheduleStarts(obj.numActivities) + obj.getScheduleDurations(obj.numActivities);
+            axStart = obj.getStart(1);
+            if isempty(axStart)
+                axStart = obj.startingTime;
+            end
+            axEnd = obj.getStart(obj.numActivities) + obj.getDuration(obj.numActivities);
+            if isempty(axEnd)
+                axEnd = axStart + hours(1);
+            end
             obj.axXLimTime = [axStart, axEnd];
             obj.ax.XLim = [0, hours(axEnd - axStart)];
                 % Axes X Ticks and TickLabels
@@ -502,10 +524,10 @@ classdef timeSchedule < handle
                 indices = 1:obj.numActivities;
             end            
             
-            tStarts = obj.getScheduleStarts(indices);
+            tStarts = obj.getStart(indices);
             axStart = obj.axXLimTime(1);
             xPos = hours(tStarts - axStart);
-            xWidth = hours(obj.getScheduleDurations(indices));
+            xWidth = hours(obj.getDuration(indices));
 
             N = numel(indices);
             for n = 1:N
@@ -515,7 +537,7 @@ classdef timeSchedule < handle
         end
         
         function updateShapeColors(obj)
-            [~, mapSchedToAct] = ismember(obj.tags(), obj.activityTypes);
+            [~, mapSchedToAct] = ismember(obj.tags(), obj.tableGUI);
             N = obj.numActivities;
             for n = 1:N
                 obj.activityShapes(n).FaceColor = obj.cmap(mapSchedToAct(n), :);
@@ -531,10 +553,10 @@ classdef timeSchedule < handle
                     HHMM = strsplit(obj.editStart.String, ':');
                     HH = HHMM{1};
                     MM = HHMM{2};
-                    start = obj.getScheduleStarts(obj.indActiveSchedAct );
+                    start = obj.getStart(obj.indActiveSchedAct );
                     start.Hour = str2double(HH);
                     start.Minute = str2double(MM);
-                    obj.setScheduleStarts(start, obj.indActiveSchedAct );
+                    obj.setStart(start, obj.indActiveSchedAct );
                 case 'duration'
                     dur = duration([0, str2double(obj.editDur.String), 0]);
                     if ~isnan(dur)
@@ -544,8 +566,8 @@ classdef timeSchedule < handle
                     HHMM = strsplit(obj.editEnd.String, ':');
                     HH = HHMM{1};
                     MM = HHMM{2};
-                    start = obj.getScheduleStarts(obj.indActiveSchedAct );
-                    dur = obj.getScheduleDurations(obj.indActiveSchedAct );
+                    start = obj.getStart(obj.indActiveSchedAct );
+                    dur = obj.getDuration(obj.indActiveSchedAct );
                     ending = start + dur;
                     ending.Hour = str2double(HH);
                     ending.Minute = str2double(MM);
@@ -556,7 +578,7 @@ classdef timeSchedule < handle
             obj.updateGUI(obj.indActiveSchedAct );
         end
         
-        function beingDeletedCallback(obj, hObj, eventData)
+        function beingDeletedCallback(obj, hObj, ~)
             
             if obj.userMode
             N = numel(obj.activityShapes);
@@ -576,66 +598,165 @@ classdef timeSchedule < handle
         
         % Not official getters and setters
         
-        function activityTypes = getActivityTypes(obj, indices)
-            activityTypes = {obj.activities(indices).name};
+        function indices = name2ind(obj, actNames)
+            if ischar(actNames )
+                actNames = {actNames};
+            end
+            indices = find(ismember(obj.names, actNames));
         end
         
-        function typeDurations = getTypeDurations(obj, indices)
+            % Type Getters
+        function types = getType(obj, indices)
+            types = {obj.activities(indices).name};
+        end
+        
+        function typeDurations = getTypeDuration(obj, indices)
             
             if iscellstr(indices) || ischar(indices)
                 if ischar(indices)
                     indices = {indices};
                 end
-                names = indices;
-                [~, indices] = ismember(names, obj.activityTypes);
+                typeNames = indices;
+                [~, indices] = ismember(typeNames, obj.types);
             end
             
             typeDurations = [obj.activities(indices).duration]';
             
         end
-
-        function names = getNames(obj, indices)
             
-            names = {obj.schedule(indices).name}';
+            % Activity Getters
+        function names = getName(obj, indices)
+            % Con estructura
+            % names = {obj.schedule(indices).name}';
+            
+            % Con tabla
+            names = obj.schedule.Name(indices);
         end
-        
-        function durations = getScheduleDurations(obj, indices)
+                   
+        function starts = getStart(obj, indices)
             
             if iscellstr(indices) || ischar(indices)
-                if ischar(indices)
-                    indices = {indices};
-                end
-                names = indices;
-                indices = ismember(obj.names, names);
+                indices = name2ind(obj, indices);
             end
             
-            durations = [obj.schedule(indices).duration]';
+            starts = obj.getValues('Start', indices);
             
         end
         
-        function starts = getScheduleStarts(obj, indices)
+        function durations = getDuration(obj, indices)
             
             if iscellstr(indices) || ischar(indices)
-                if ischar(indices)
-                    indices = {indices};
-                end
-                names = indices;
-                indices = ismember(obj.names, names);
+                indices = name2ind(obj, indices);
             end
             
-            starts = [obj.schedule(indices).start]';
+            durations = obj.getValues('Duration', indices);
             
         end
         
-        function fixedStarts = getFixedStarts(obj, indices)
-            fixedStarts = [obj.schedule(indices).fixedStart]';
+        function ends = getEnd(obj, indices)
+            if iscellstr(indices) || ischar(indices)
+                indices = name2ind(obj, indices);
+            end
+            
+            startsVal = obj.getStart(indices);
+            durs = obj.getDurations(indices);
+            ends = startsVal + durs;
         end
         
-        function activityTypes = getScheduleActivityTypes(obj, indices)
-            activityTypes = {obj.schedule(indices).activityType}';
+        function fixedStarts = getFixedStart(obj, indices)
+            
+            if iscellstr(indices) || ischar(indices)
+                indices = name2ind(obj, indices);
+            end
+            
+            fixedStarts = obj.getValues('FixedStart', indices);
+            
+        end
+        
+        function fixedDurations = getFixedDuration(obj, indices)
+            
+            if iscellstr(indices) || ischar(indices)
+                indices = name2ind(obj, indices);
+            end
+            
+            fixedDurations = obj.getValues('FixedDuration', indices);
+            
+        end
+        
+        function fixedEnds = getFixedEnd(obj, indices)
+            
+            if iscellstr(indices) || ischar(indices)
+                indices = name2ind(obj, indices);
+            end
+            
+            fixedEnds = obj.getValues('FixedEnd', indices);
+            
+        end
+        
+        function types = getActivityType(obj, indices)
+            
+            tagsCol = obj.getTags(indices);
+            
+            % Select the first tag
+            N = numel(indices);
+            types = cell(N, 1);
+            for n = 1:N
+                curTags = tagsCol{n};
+                
+                if ~isempty(curTags)
+                    if ischar(curTags)
+                        types{n} = curTags;
+                    elseif iscellstr(curTags)
+                        types{n} = curTags{1};
+                    end
+                end
+            end
+            
+        end
+        
+        function tags = getTags(obj, indices)
+            
+            if iscellstr(indices) || ischar(indices)
+                indices = name2ind(obj, indices);
+            end
+            
+            tags = obj.getValues('Tags', indices);
+        end
+        
+        function values = getValues(obj, variableName, indices)
+            if nargin < 3
+                indices = 1:min(obj.numActivities, numel(indices));
+            end
+            
+            if all(indices > 0) && all(indices <= obj.numActivities)
+                values = obj.schedule.(variableName)(indices);
+            else
+                values = [];
+            end
+            
+            if isempty(values)
+                switch variableName
+                    case 'Name'
+                        values = cell.empty;
+                    case 'Start'
+                        values = datetime.empty;
+                    case 'Duration'
+                        values = duration.empty;
+                    case 'Tags'
+                        values = cell.empty;
+                    case 'FixedStart'
+                        values = logical.empty;
+                    case 'FixedDuration'
+                        values = logical.empty;
+                    case 'FixedEnd'
+                        values = logical.empty;
+                end
+            end
+            
         end
                 
-        function setScheduleNames(obj, names, indices)
+            % Activity Setters
+        function setName(obj, names, indices)
             if nargin == 2
                 indices = 1:min(obj.numActivities, numel(names));
             end
@@ -644,57 +765,127 @@ classdef timeSchedule < handle
                 names = {names};
             end
             
-            N = numel(indices);
-            for n = 1:N
-                obj.schedule(indices(n)).name = names{n};
-            end
+            obj.setValues('Name', names, indices);
+            
         end
         
-        function setScheduleDurations(obj, durations, indices)
+        function setStart(obj, starts, indices)
+            if nargin == 2
+                indices = 1:min(obj.numActivities, numel(starts));
+            end
+            
+            obj.setValues('Start', starts, indices);
+        end
+        
+        function setDuration(obj, durations, indices)
             if nargin == 2
                 indices = 1:min(obj.numActivities, numel(durations));
             end
             
-            N = numel(indices);
-            for n = 1:N
-                obj.schedule(indices(n)).duration = durations(n);
-            end
+            obj.setValues('Duration', durations, indices);
+            
         end
         
-        function setScheduleActivityTypes(obj, activityTypes, indices)
+        function setEnd(obj, ends, indices)
+            if nargin == 2
+                indices = 1:min(obj.numActivities, numel(ends));
+            end
+            
+            obj.setValues('End', ends, indices);
+        end
+        
+        function setActivityType(obj, activityTypes, indices)
             if nargin == 2
                 indices = 1:min(obj.numActivities, numel(activityTypes));
             end
             
-            if ~iscellstr(activityTypes)
-                activityTypes = {activityTypes};
-            end
-            
             N = numel(indices);
-            for n = 1:N
-                obj.schedule(indices(n)).activityType = activityTypes{n};
-            end
+            firstPos = num2cell(ones(N, 1));
+            activityTypes = num2cell(activityTypes);
+            
+            obj.addTags(activityTypes, firstPos, indices);
         end
         
-        function setScheduleStarts(obj, startingTimes, indices)
+        function setTags(obj, tags, indices)
             if nargin == 2
-                indices = 1:min(obj.numActivities, numel(startingTimes));
+                indices = 1:min(obj.numActivities, numel(tags));
+            end
+            
+            if ~iscellstr(tags)
+                tags = {tags};
+            end
+            
+            obj.setValues('Tags', tags, indices);         
+        end
+        
+        function addTags(obj, tags, pos, indices)
+            % Add the tags to the existing tags, in the indicated position
+            % N. Number of indices
+            % - tags. Cell array with N elements. The i-th element contains a
+            % cell string array, with as many elements as new tags to add
+            % to the i-th activity.
+            
+            if nargin == 2
+                indices = 1:min(obj.numActivities, numel(tags));
             end
             
             N = numel(indices);
             for n = 1:N
-                obj.schedule(indices(n)).start = startingTimes(n);
+                existingTags = obj.getTags(indices(n)); existingTags = existingTags{1};
+                tagsToAdd = tags{n};
+                posToAdd = pos{n};
+                
+                numExistingTags = numel(existingTags);
+                numTagsToAdd = numel(tagsToAdd);
+                numNewTags = numExistingTags + numTagsToAdd;
+                
+                newTags = cell(numNewTags, 1);
+                posLogical = false(numNewTags, 1);
+                posLogical(posToAdd) = true;
+                newTags(~posLogical) = existingTags;
+                newTags(posLogical) = tagsToAdd;
+                
+                obj.setTags(newTags, indices(n));
             end
+            
         end
         
-        function setFixedStarts(obj, flags, indices)
+        function setFixedStart(obj, flags, indices)
             if nargin == 2
                 indices = 1:min(obj.numActivities, numel(flags));
             end
             
-            N = numel(indices);
-            for n = 1:N
-                obj.schedule(indices(n)).fixedStart = flags(n);
+            obj.setValues('FixedStart', flags, indices);
+        end
+        
+        function setFixedDuration(obj, flags, indices)
+            if nargin == 2
+                indices = 1:min(obj.numActivities, numel(flags));
+            end
+            
+            obj.setValues('FixedDuration', flags, indices);
+        end
+        
+        function setFixedEnd(obj, flags, indices)
+            if nargin == 2
+                indices = 1:min(obj.numActivities, numel(flags));
+            end
+            
+            obj.setValues('FixedEnd', flags, indices);
+        end
+        
+        function setValues(obj, variableName, values, indices)
+            
+            if nargin < 4
+                indices = 1:min(obj.numActivities, numel(values));
+            end
+            
+            switch variableName
+                case 'End'
+                    % Set duration depending on the ending time
+                    obj.schedule.('Duration')(indices) = obj.getDuration(indices) - obj.getStart(indices);
+                otherwise
+                    obj.schedule.(variableName)(indices) = values;
             end
         end
     end
