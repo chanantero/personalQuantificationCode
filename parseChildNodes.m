@@ -8,7 +8,7 @@ if theNode.hasChildNodes
    allocCell = cell(1, numChildNodes);
 
    children = struct(             ...
-      'Name', allocCell, 'Attributes', allocCell,    ...
+      'Tag', allocCell, 'Attributes', allocCell,    ...
       'Data', allocCell, 'Children', allocCell);
 
     for count = 1:numChildNodes
@@ -16,13 +16,14 @@ if theNode.hasChildNodes
         children(count) = makeStructFromNode(theChild);
     end
 end
+end
 
 function nodeStruct = makeStructFromNode(theNode)
 % Create structure of node info.
 % https://es.mathworks.com/help/matlab/ref/xmlread.html
 
 nodeStruct = struct(                        ...
-   'Name', char(theNode.getNodeName),       ...
+   'Tag', char(theNode.getNodeName),       ...
    'Attributes', parseAttributes(theNode),  ...
    'Data', '',                              ...
    'Children', parseChildNodes(theNode));
@@ -31,6 +32,7 @@ if any(strcmp(methods(theNode), 'getData'))
    nodeStruct.Data = char(theNode.getData); 
 else
    nodeStruct.Data = '';
+end
 end
 
 function attributes = parseAttributes(theNode)
@@ -49,4 +51,5 @@ if theNode.hasAttributes
       attributes(count).Name = char(attrib.getName);
       attributes(count).Value = char(attrib.getValue);
    end
+end
 end

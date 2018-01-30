@@ -1,5 +1,5 @@
 function habitTable2xmlFile(T)
-
+% xmlwrite(filename,DOMnode)
 
 end
 
@@ -10,7 +10,7 @@ function habitTable2HabitStruct(T)
 refDate = datetime(2017,1,1);
 T.Date = days(T.Date - refDate);
 datesGrp = grpstats(T, 'Date', 'gname', 'DataVars', 'Date');
-datesGrp.Date = refDate + dadatesGrp.Date
+datesGrp.Date = refDate + dadatesGrp.Date;
 numDates = size(datesGrp, 1);
 
 
@@ -20,9 +20,5 @@ s.Name =
 end
 
 function habitStruct2xmlFile(habitStructure)
-
-end
-
-function habitBullCSV2habitTable(HBcsvFileName)
 
 end
