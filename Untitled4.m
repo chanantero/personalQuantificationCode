@@ -1,5 +1,5 @@
 % Lectura Habit Bull CSV y guardado en xml de hábitos
-T = habitBullExport2habitTable('../HabitBull CSV Data File Export.csv');
+T = habitBullExport2habitTable('../Datos/HabitBull CSV Data File Export.csv');
 
 wakeUpFlag = strcmp(T.Tag, 'Waking up');
 sleepFlag = strcmp(T.Tag, 'Time to sleep');

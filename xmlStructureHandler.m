@@ -20,7 +20,7 @@ classdef xmlStructureHandler < handle
         end
         
         function nodes = getNodesByElementTag(obj, tag)
-            [absoluteTreeScheme, ~] = getTreeAbsoluteScheme( obj.s, [] );
+            absoluteTreeScheme = getTreeAbsoluteScheme(obj.s);
             numChildrenLevel1 = absoluteTreeScheme{1};
             
             % Get elements of the hierarchy level 1 with tag tag
