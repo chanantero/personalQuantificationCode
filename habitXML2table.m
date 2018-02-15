@@ -66,13 +66,16 @@ end
 valueColumn = cell(numElements, 1);
 for r = 1:numElements
     valueColumn{r} = extTable.('Data_Level_3'){r};
+    if isempty(valueColumn{r})
+        valueColumn{r} = '';
+    end
 end
 
 T = table(dateColumn, habitColumn, valueColumn, 'VariableNames', {'Date', 'Habit', 'Value'});
 
 T.Date = datetime(T.Date, 'InputFormat', 'dd/MM/yyyy');
 T.Habit = categorical(T.Habit);
-T.Value = str2double(T.Value);
+% T.Value = str2double(T.Value);
 T = sortrows(T, {'Date', 'Habit'}, 'descend');
 
 end

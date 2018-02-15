@@ -1,2 +1,3 @@
-T = activityXML2table('../PruebaActividades.xml');
+Tact = activityXML2table('../Datos/Actividades.xml');
+
 

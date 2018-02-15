@@ -34,7 +34,7 @@ data = mat2cell(data, numActivities, ones(1, numVariableNames));
 T = table(data{:}, 'VariableNames', variableNames);
 
 % Convierte start y ending a clase datetime y duration a clase duration
-for a = 1:numel(T.ending)
+for a = 1:numActivities % numel(T.ending)
     if isempty(T.ending{a})
         T.ending{a} = '';
     end
@@ -51,7 +51,8 @@ end
 T.start = datetime(T.start, 'InputFormat', 'yyyy/MM/dd HH:mm');
 T.ending = datetime(T.ending, 'InputFormat', 'yyyy/MM/dd HH:mm');
 
-names = regexp(T.duration, '(?<value>\d+)(?<unit>\D*)', 'names');
+% Parse durations
+names = regexp(T.duration, '(?<value>\d+(\.\d+)?)(?<unit>[hms]*)', 'names');
 durationMatrix = zeros(numActivities, 3); % [h, m, s]
 for a = 1:numActivities
     numFields = numel(names{a});

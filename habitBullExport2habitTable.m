@@ -6,6 +6,9 @@ T_habitBull = readtable(fileName);
 T = T_habitBull(:, {'CalendarDate', 'HabitName', 'Value'});
 T.Properties.VariableNames = {'Date', 'Habit', 'Value'};
 T.Value = num2cell(T.Value);
+for k = 1:size(T, 1)
+    T.Value{k} = num2str(T.Value{k});
+end
 
 % For some variables, the relevant value is written in the comment column
 flag = ismember(T_habitBull.HabitName, {'Waking up', 'Time to sleep', 'Fase de bajo estímulo'});
