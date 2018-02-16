@@ -11,6 +11,10 @@ numVariableNames = numel(variableNames);
 
 % Crea tabla de actividades
 data = cell(numActivities, numVariableNames);
+for k = 1:numel(data)
+    data{k} = '';
+end
+
 for a = 1:numActivities
     names = {activities(a).Attributes(:).Name};
     values = {activities(a).Attributes(:).Value};
@@ -34,22 +38,22 @@ data = mat2cell(data, numActivities, ones(1, numVariableNames));
 T = table(data{:}, 'VariableNames', variableNames);
 
 % Convierte start y ending a clase datetime y duration a clase duration
-for a = 1:numActivities % numel(T.ending)
-    if isempty(T.ending{a})
-        T.ending{a} = '';
-    end
-    
-    if isempty(T.start{a})
-        T.start{a} = '';
-    end
-    
-    if isempty(T.duration{a})
-        T.duration{a} = '';
-    end
-end
+% for a = 1:numActivities % numel(T.ending)
+%     if isempty(T.ending{a})
+%         T.ending{a} = '';
+%     end
+%     
+%     if isempty(T.start{a})
+%         T.start{a} = '';
+%     end
+%     
+%     if isempty(T.duration{a})
+%         T.duration{a} = '';
+%     end
+% end
 
-T.start = datetime(T.start, 'InputFormat', 'yyyy/MM/dd HH:mm');
-T.ending = datetime(T.ending, 'InputFormat', 'yyyy/MM/dd HH:mm');
+T.start = datetime(T.start, 'InputFormat', 'yyyy/MM/dd HH:mm:ss');
+T.ending = datetime(T.ending, 'InputFormat', 'yyyy/MM/dd HH:mm:ss');
 
 % Parse durations
 names = regexp(T.duration, '(?<value>\d+(\.\d+)?)(?<unit>[hms]*)', 'names');

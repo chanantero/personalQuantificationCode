@@ -90,7 +90,7 @@ classdef timeSchedule < handle
         end
         
         function numTypes = get.numTypes(obj)
-            numTypes = numel(obj.activities);
+            numTypes = size(obj.activities, 1);
         end
         
         function set.activities(obj, value)
@@ -133,6 +133,9 @@ classdef timeSchedule < handle
         
         function obj = timeSchedule(activities)
             obj.createGUI();
+            if nargin == 0
+                activities = timeSchedule.getDefaultActivityTable();
+            end
             obj.activities = activities;
             obj.startingTime = datetime(2018, 1, 1, 0, 0, 0);
         end
@@ -294,7 +297,7 @@ classdef timeSchedule < handle
             N = obj.numActivities;
             obj.activityShapes = gobjects(N, 1);
             for n = 1:N
-                r = rectangle(obj.ax, 'FaceColor', obj.cmap(mapSchedToAct(n), :), 'Tag', names_{n});
+                r = rectangle(obj.ax, 'FaceColor', obj.activities.Color{mapSchedToAct(n)}, 'Tag', names_{n});
                 r.ButtonDownFcn = @(src, eventdata) obj.shapeButtonDownCallback(src, eventdata);
                 r.DeleteFcn = @(src, eventdata) obj.beingDeletedCallback(src, eventdata);
                 obj.activityShapes(n) = r;
@@ -499,11 +502,11 @@ classdef timeSchedule < handle
         function setAxesProperties(obj)
             % Set axes properties
                 % Axes X Limits
-            axStart = obj.getStart(1);
+            axStart = min(obj.getStart(1:obj.numActivities));
             if isempty(axStart)
                 axStart = obj.startingTime;
             end
-            axEnd = obj.getStart(obj.numActivities) + obj.getDuration(obj.numActivities);
+            axEnd = max(obj.getStart(1:obj.numActivities) + obj.getDuration(1:obj.numActivities));
             if isempty(axEnd)
                 axEnd = axStart + hours(1);
             end
@@ -607,7 +610,7 @@ classdef timeSchedule < handle
         
             % Type Getters
         function types = getType(obj, indices)
-            types = {obj.activities(indices).name};
+            types = obj.activities.Type(indices);
         end
         
         function typeDurations = getTypeDuration(obj, indices)
@@ -620,7 +623,7 @@ classdef timeSchedule < handle
                 [~, indices] = ismember(typeNames, obj.types);
             end
             
-            typeDurations = [obj.activities(indices).duration]';
+            typeDurations = obj.activities.Duration(indices);
             
         end
             
@@ -705,10 +708,16 @@ classdef timeSchedule < handle
                 
                 if ~isempty(curTags)
                     if ischar(curTags)
-                        types{n} = curTags;
+                        actType = curTags;
                     elseif iscellstr(curTags)
-                        types{n} = curTags{1};
+                        actType = curTags{1};
                     end
+                    if ~ismember(actType, obj.types)
+                        actType = 'Default';
+                    end
+                    types{n} = actType;
+                else
+                    types{n} = 'Default';
                 end
             end
             
@@ -725,7 +734,8 @@ classdef timeSchedule < handle
         
         function values = getValues(obj, variableName, indices)
             if nargin < 3
-                indices = 1:min(obj.numActivities, numel(indices));
+%                 indices = 1:min(obj.numActivities, numel(indices));
+                indices = 1:obj.numActivities;
             end
             
             if all(indices > 0) && all(indices <= obj.numActivities)
@@ -887,6 +897,29 @@ classdef timeSchedule < handle
                 otherwise
                     obj.schedule.(variableName)(indices) = values;
             end
+        end
+    end
+    
+    methods(Static)
+        function activityTable = getDefaultActivityTable()
+            hex2norm_RGB = @(s) hex2dec({s(1:2), s(3:4), s(5:6)})'/255;
+            colorRutines = hex2norm_RGB('4EC500');
+            colorMeals = hex2norm_RGB('F6E000');
+            
+            data = {'Dormir', [9 0 0], [0 0 0];
+                'Rutina matinal', [1 20 0], colorRutines;
+                'Rutina vespertina', [0 80 0], colorRutines;
+                'Rutina nocturna', [0 30 0], colorRutines;
+                'Desayunar', [0 40 0], colorMeals
+                'Comer', [1 30 0], colorMeals;
+                'Cenar', [1 30 0], colorMeals;
+                'Bloque productivo', [3 0 0], hex2norm_RGB('F300F3');
+                'Default', [1 0 0], hex2norm_RGB('555555');
+                'Trayecto', [0 30 0], hex2norm_RGB('15B4E1')};
+            
+            data = mat2cell(data, size(data, 1), ones(1, 3));
+            activityTable = table(data{:}, 'VariableNames', {'Type', 'Duration', 'Color'});
+            
         end
     end
     
