@@ -11,7 +11,7 @@ for k = 1:size(T, 1)
 end
 
 % For some variables, the relevant value is written in the comment column
-flag = ismember(T_habitBull.HabitName, {'Waking up', 'Time to sleep', 'Fase de bajo estímulo'});
+flag = ismember(T_habitBull.HabitName, {'Waking up', 'Time to sleep', 'Fase de bajo estimulo'});
 T(flag, 'Value') = T_habitBull(flag, 'CommentText');
 
 T.Date = datetime(T.Date, 'InputFormat', 'yyyy-MM-dd');

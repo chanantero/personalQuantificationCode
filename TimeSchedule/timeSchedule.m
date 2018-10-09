@@ -915,7 +915,11 @@ classdef timeSchedule < handle
                 'Cenar', [1 30 0], colorMeals;
                 'Bloque productivo', [3 0 0], hex2norm_RGB('F300F3');
                 'Default', [1 0 0], hex2norm_RGB('555555');
-                'Trayecto', [0 30 0], hex2norm_RGB('15B4E1')};
+                'Trayecto', [0 30 0], hex2norm_RGB('15B4E1');
+                'Social', [1 0 0], hex2norm_RGB('B0F91E')
+                'No intencion', [1 0 0], hex2norm_RGB('32244F');
+                'Ocio', [1 0 0], hex2norm_RGB('98CD14')
+                };
             
             data = mat2cell(data, size(data, 1), ones(1, 3));
             activityTable = table(data{:}, 'VariableNames', {'Type', 'Duration', 'Color'});

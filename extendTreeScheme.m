@@ -1,5 +1,6 @@
 function nodeIndexMatrix = extendTreeScheme( treeScheme )
 % Parent node is level 1.
+% treeScheme is an absolute tree scheme
 
 numLevels = numel(treeScheme);
 

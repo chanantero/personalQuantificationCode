@@ -1,4 +1,13 @@
 function absoluteTreeScheme = getTreeAbsoluteScheme( tree )
+% tree is a structure
+
+if length(tree) == 1
+    artificialGlobal = false;
+else
+    treeAux = struct('tag', 'root', 'Attributes', [], 'Data', [], 'Children', tree);
+    tree = treeAux;
+    artificialGlobal = true;
+end
 
 numChildren = numel(tree.Children);
 
@@ -32,7 +41,9 @@ for d = 1:maxDepth
     absoluteTreeScheme{d+1} = cat(1, currentLevelScheme{:});
 end
 
-
+if artificialGlobal
+    absoluteTreeScheme = absoluteTreeScheme(2:end);
+end
 
 end
 

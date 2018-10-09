@@ -1,7 +1,7 @@
 %% Registro hábitos
 
 habitXML = '../Datos/Registro cuantificable.xml';
-habitBullFileName = '../Datos/HabitBull CSV Data File Export.csv';
+habitBullFileName = '../Datos/HabitBull CSV Data File Export 22-07-2018.csv';
 
 % Importa nuevos hábitos
 ThabitBull = habitBullExport2habitTable(habitBullFileName);
@@ -19,4 +19,3 @@ T = [ThabitBull(indNewRows, :); Thabit];
 
 % Escribe la nueva información
 habitTable2XML(T, habitXML);
-

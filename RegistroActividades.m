@@ -1,10 +1,11 @@
 %% Registro actividades
 
-activityXML = '../Datos/Actividades.xml';
-ultrachronFileName = '../Datos/Timing 15-02-2018.txt';
+activityXML = '../Datos/ActividadesNuevo.xml';
+ultrachronFileName = '../Datos/Timing 10-9.txt';
 
 % Importa actividades
 Tultrachron = ultrachron2activityTable(ultrachronFileName);
+Tultrachron = flip(Tultrachron);
 
 % Haz las modificaciones pertinentes
 % ...
@@ -14,7 +15,7 @@ Tultrachron = ultrachron2activityTable(ultrachronFileName);
 % tabla ya existente
 % Read de xml file
 theStruct = activityTable2structure(Tultrachron);
-structure2XML( theStruct, activityXML, true ); % append = true
+structure2XML( theStruct, activityXML, true, true ); % append = true
 
 % % Otra forma
 % Importa las actividades registradas hasta ahora

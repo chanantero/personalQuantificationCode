@@ -1,18 +1,23 @@
-function structure2XML( theStruct, fileName, appendFlag )
+function structure2XML( theStruct, fileName, appendFlag, beforeFlag )
 
 if nargin < 3
     appendFlag = false;
 end
 
+if nargin < 4
+    beforeFlag = false;
+end
+
 if appendFlag
-    DocNode = xmlread(XMLfileName);
+    DocNode = xmlread(fileName);
     DOMnode = DocNode.getDocumentElement;
-    DOMnode = structure2DOMnode(theStruct, DOMnode, DocNode);
+    doctype = DocNode.getDoctype;
+    DOMnode = structure2DOMnode(theStruct, DOMnode, DocNode, 'insertBefore', beforeFlag);
 else
     DOMnode = structure2DOMnode( theStruct );
 end
 
-xmlwrite(fileName, DOMnode);
+xmlwrite(fileName, DocNode); % Before it was wrong: xmlwrite(fileName, DOMnode);
 
 end
 

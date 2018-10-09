@@ -10,7 +10,7 @@ str = fileread(fileName);
 % Other useful expressions:
 % - expression = 'Start Time: (?<day>\d+) (?<month>\D+) (?<year>\d{4}) (?<hour>\d+):(?<minute>\d+):(?<second>\d+) (?<ampm>[ap])\.m\.';
 % - expression = 'Start Time: (?<date>\d+ \D+ \d{4}) (?<hour>\d+):(?<minute>\d+):(?<second>\d+) (?<ampm>[ap])\.m\.';
-expression = 'Start Time: (?<dateAndTime>\d+ \D+ \d{4} \d+:\d+:\d+) (?<ampm>[ap])\.m\.';
+expression = 'Start Time: (?<dateAndTime>\d+ \D+ \d{4} \d+:\d+:\d+) (?<ampm>[ap])(\.m\.||m)';
 names = regexp(str, expression, 'names');
 
 inputFormat = 'd MMM yyyy h:mm:ss a';

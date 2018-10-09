@@ -17,7 +17,24 @@ classdef xmlStructureHandler < handle
                 obj.fileName = fileName;
                 obj.s = xmlStructureHandler.xml2structure(fileName);
             end
-        end          
+        end
+        
+        function nodes = getNodesByElementTag(obj, tag)
+            numChildrenLevel1 = xmlStructureHandler.getNumberOfChildren(obj.s);
+            
+            % Get elements of the hierarchy level 1 with tag tag
+            flag = false(numChildrenLevel1, 1);
+            for c = 1:numChildrenLevel1
+                if strcmp(obj.s.Children(c).Tag, tag)
+                    flag(c) = true;
+                end
+            end
+            
+            {obj.s.Children.Tag}
+            
+            nodes = obj.s.Children(flag);
+        end
+                
     end
     
     methods(Static)
@@ -54,13 +71,8 @@ classdef xmlStructureHandler < handle
             numNodes = length(nodes);
             numChildren = zeros(numNodes, 1);
             for n = 1:numNodes
-                numChildren(n) = length(nodes(n).Children);
+                numChildren(n) = length(nodes.Children);
             end
-        end
-        
-        function nodes = getNodesByTag(nodes, tag)            
-            flag = ismember({nodes.Tag}, tag);           
-            nodes = nodes(flag);
         end
     end
 end

@@ -65,7 +65,6 @@ for a = 1:numActivities
 end
 
 % Other way
-data = strings(numActivities, numVariableNames);
 [propertyIndMatrix, ~] = xmlStructureHandler.existAttributes(activities, variableNames);
 indDesc = find(strcmp(variableNames, 'description'));
 numChildren = xmlStructureHandler.getNumberOfChildren(activities);
@@ -77,14 +76,31 @@ for a = 1:numActivities
     
     if hasDescription(a)
         textNodes = xmlStructureHandler.getNodesByTag(activities(a).Children, '#text');
-        description = strjoin(string({textNodes.Data}), '\n');
+        
         data(a, indDesc) = description;
     end
+    
 end
+
 data = mat2cell(data, numActivities, ones(1, numVariableNames));
+
 T = table(data{:}, 'VariableNames', variableNames);
 
 % Convierte start y ending a clase datetime y duration a clase duration
+% for a = 1:numActivities % numel(T.ending)
+%     if isempty(T.ending{a})
+%         T.ending{a} = '';
+%     end
+%     
+%     if isempty(T.start{a})
+%         T.start{a} = '';
+%     end
+%     
+%     if isempty(T.duration{a})
+%         T.duration{a} = '';
+%     end
+% end
+
 T.start = datetime(T.start, 'InputFormat', 'yyyy/MM/dd HH:mm:ss');
 T.ending = datetime(T.ending, 'InputFormat', 'yyyy/MM/dd HH:mm:ss');
 
