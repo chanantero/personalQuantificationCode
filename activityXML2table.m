@@ -12,7 +12,7 @@ function T = activityXML2table(fileName)
 % - ending. Ending time of the activity. Datetime.
 % - description. String.
 % - people. People with whom the activity was done. String array.
-% - category. Type/class/kind of activity. CategoryEnum or String.
+% - category. Type/class/kind of activity. activityCategory or String.
 % - tags. The use of this property is not clear. String array.
 % Other properties:
 % - focus. Whether the activity has a prominent concentration aspect. PropFlag.
@@ -33,38 +33,16 @@ activities = xmlStructureHandler.getNodesByTag(theStruct.Children, 'activity');
 numActivities = numel(activities);
 
 mainAttributes = {'name', 'start', 'duration', 'ending', 'category', 'tags', 'description', 'people'};
-mainAttribDataType = {'string', 'datetime', 'duration', 'datetime', 'activityCategory', 'stringArray', 'string', 'stringArray'};
+mainAttribDataType = {'string', 'datetime', 'duration', 'datetime', 'activityCategory', 'string', 'string', 'string'};
 secondaryAttributes = {'focus', 'social', 'exercise', 'game', 'study', 'development'};
 secondaryAttribDataType = {'PropFlag', 'PropFlag', 'PropFlag', 'PropFlag', 'PropFlag', 'PropFlag'};
+categoryStrings = {'Exercise', 'Game', 'Work', 'Study', 'Waste', 'Porn', 'Meal', 'Cook'};
+
 variableNames = [mainAttributes, secondaryAttributes];
 variableDataTypes = [mainAttribDataType, secondaryAttribDataType];
 numVariableNames = numel(variableNames);
 
 % Crea tabla de actividades
-data = cell(numActivities, numVariableNames);
-for k = 1:numel(data)
-    data{k} = '';
-end
-
-for a = 1:numActivities
-    names = {activities(a).Attributes(:).Name};
-    values = {activities(a).Attributes(:).Value};
-    
-    % Detecta los elementos de texto que son hijos de la actividad. Es la
-    % descripción
-    if ~isempty(activities(a).Children)
-        textFlag = strcmp('#text', {activities(a).Children.Tag});
-        description = strjoin({activities(a).Children(textFlag).Data}, sprintf('\n'));
-        names = [names, {'description'}];
-        values = [values, {description}];
-    end
-    
-    [flag, ind] = ismember(variableNames, names);
-    
-    data(a, flag) = values(ind(flag));
-end
-
-% Other way
 data = strings(numActivities, numVariableNames);
 [propertyIndMatrix, ~] = xmlStructureHandler.existAttributes(activities, variableNames);
 indDesc = find(strcmp(variableNames, 'description'));
@@ -120,25 +98,19 @@ for a = 1:numActivities
 end
 T.duration = duration(durationMatrix);
 
-firstSecondAttr = length(mainAttributes) + 1;
-for at = firstSecondAttr:numVariableNames
+for at = 1:numVariableNames
     switch variableDataTypes{at}
         case 'PropFlag'
-            [flags, ind] = ismember(T{:, at}, {'true', 'false'});
+            [flags, ind] = ismember(T.(at), {'true', 'false'});
             values = PropFlag(zeros(numActivities, 1));
             values(~flags) = PropFlag.Unknown;
             values(ind == 1) = PropFlag.True;
             values(ind == 2) = PropFlag.False;
-            T{:, at} = mat2cell(values, ones(numActivities, 1));
-            for a = 1:numActivities
-                str = T{a, at};
-                if isempty(str)
-                    T{a, at} = PropFlag.Unknown;
-                elseif strcmp(str, 'true')
-                elseif strcmp(str, 'false')
-                else
-                end
-            end
+            T.(at) = values;
+        case 'activityCategory'
+            [~, ind] = ismember(T.(at), categoryStrings);
+            values = activityCategory(ind);
+            T.(at) = values;
     end
 end
 

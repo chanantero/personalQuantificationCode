@@ -62,5 +62,6 @@ classdef xmlStructureHandler < handle
             flag = ismember({nodes.Tag}, tag);           
             nodes = nodes(flag);
         end
+        
     end
 end

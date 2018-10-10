@@ -2,6 +2,14 @@ function nodeIndexMatrix = extendTreeScheme( treeScheme )
 % Parent node is level 1.
 % treeScheme is an absolute tree scheme
 
+treeScheme = treeScheme(:);
+if length(treeScheme{1}) > 1
+    treeScheme = [{length(treeScheme{1})}; treeScheme];
+    artificialRoot = true;
+else
+    artificialRoot = false;
+end
+
 numLevels = numel(treeScheme);
 
 nodeIndices = cell(1, numLevels);
@@ -41,7 +49,9 @@ for d = 1:numLevels
     starts = [0; endings(1:end - 1)] + 1;
 end
 
-
+if artificialRoot
+    nodeIndexMatrix = nodeIndexMatrix(:, 2:end);
+end
 
 end
 

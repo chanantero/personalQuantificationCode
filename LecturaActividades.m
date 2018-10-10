@@ -17,7 +17,6 @@ selTact = Tact;
 firstDay = max(dateshift(Tact.start, 'start', 'day')) - days(3);
 selTact = selTact(selTact.start >= firstDay, :);
 
-
 numActSel = size(selTact, 1);
 
 % If there are NaN values in the duration, calculate it with the end time
@@ -81,8 +80,6 @@ Tgrup = grpstats(selTact, 'day', 'sum', 'DataVars', {'hours'});
 Tgrup.day.Format = 'dd-MMM';
 TgrupIndiv = grpstats(selTact, 'dayIndividual', 'sum', 'DataVars', {'hours'});
 TgrupIndiv.dayIndividual.Format = 'dd-MMM';
-
-
 
 ax = axes(figure);
 % plot(ax, Tgrup.day, Tgrup.sum_hours, 'o');
