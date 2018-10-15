@@ -30,6 +30,8 @@ classdef ActivityHandler < handle
 
     properties
         Tact
+        activityAttributeNames = {'name', 'start', 'duration', 'ending', 'category', 'tags', 'description', 'people',...
+            'focus', 'social', 'exercise', 'game', 'study', 'development'};
               
         % GUI
         fig
@@ -42,12 +44,7 @@ classdef ActivityHandler < handle
         minTime
         maxTime
         
-        indepVar
-    end
-    
-    properties (Constant)
-        activityAttributes = {'name', 'start', 'duration', 'ending', 'category', 'tags', 'description', 'people',...
-            'focus', 'social', 'exercise', 'game', 'study', 'development'};
+        indepVar       
     end
     
     % Getters and setters
@@ -75,12 +72,15 @@ classdef ActivityHandler < handle
     end
     
     methods
-        function obj = ActivityHandler(activityTable)
+        function obj = ActivityHandler(activityTable, activityAttributeNames)
             obj.Tact = activityTable;
-                 
+            if nargin > 1
+                obj.activityAttributeNames = activityAttributeNames;
+            end
+                             
             obj.minTime = datetime([2000, 1, 1]);
             obj.maxTime = datetime([2100, 1, 1]);
-            obj.indepVar = categorical({'category'}, obj.activityAttributes, obj.activityAttributes, 'Protected', true);
+            obj.indepVar = categorical({'category'}, obj.activityAttributeNames, obj.activityAttributeNames, 'Protected', true);
             
             obj.fig = figure;
             obj.axPieChart = subplot(2, 2, 1);
