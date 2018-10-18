@@ -98,7 +98,7 @@ classdef ActivityHandler < handle
             % numeric
             Tsel.duration = hours(Tsel.duration);
             
-            Tgrp = grpstats(Tsel, obj.indepVar, 'sum', 'DataVars', {'duration'}, 'VarNames', {char(obj.indepVar), 'GroupCount', 'TotalDuration'});
+            Tgrp = grpstats(Tsel, char(obj.indepVar), 'sum', 'DataVars', {'duration'}, 'VarNames', {char(obj.indepVar), 'GroupCount', 'TotalDuration'});
             
             pie(obj.axPieChart, Tgrp.TotalDuration, cellstr(Tgrp{:, char(obj.indepVar)}))
             

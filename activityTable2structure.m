@@ -4,11 +4,10 @@ numActivities = size(T, 1);
 
 structs = repmat(struct('Tag', 'activity', 'Attributes', [], 'Data', [], 'Children', []), ...
     numActivities, 1);
-
-for ac = 1:numActivities
     
-    attributeNames = {'name', 'start', 'duration', 'ending', 'tags', 'description'};
-    numAttributes = numel(attributeNames);
+attributeNames = {'name', 'start', 'duration', 'ending', 'tags', 'description'};
+numAttributes = numel(attributeNames);
+for ac = 1:numActivities
     attributes = repmat(struct('Name', [], 'Value', []), numAttributes, 1);
     
     at = 1;

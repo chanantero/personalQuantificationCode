@@ -1,23 +1,18 @@
-function Tact = activityXML2tablePrueba(fileName)
+function Tact = activityXML2table(fileName)
 
 % Find and read XML schema definition file
 xsdFile = getXSDfile(fileName);
-xsdStruct = xml2structure(xsdFile);
-
-% Find allowed activity attributes
-% 1) Find node of type xs:element whose attribute "name" is "activity
-xsdTable = XMLstructure2XMLtable(xsdStruct.Children, 'maxLevel', 1);
-TattribElem = unfoldAttributesInTable(xsdTable, 'Attributes_Level_1', 'name');
-indActiv = ismember(TattribElem.name, 'activity');
-% 2) Find nodes grandchildren (not children because of the structure of the XSD syntax)
-% of the activity element node that have type xs:attribute
-activTable = XMLstructure2XMLtable(xsdStruct.Children(indActiv));
-indAttrib = strcmp(activTable.('Tag_Level_3'), 'xs:attribute');
-Tattrib = unfoldAttributesInTable(activTable(indAttrib, :), 'Attributes_Level_3', ["name", "type", "use", "default"]);
+if ~isempty(xsdFile)
+    Tattrib = XSDfile2XSDattributeTable(xsdFile, 'activity');
+else
+    error('activityXML2table:noXSD', 'The XML file has no XSD scheme referenced')
+    % Completar un Tattrib con los campos que sé que uso sí o sí: start,
+    % ending, duration, tags, category, etc.
+end
 numAttribs = size(Tattrib, 1);
 
 % Create table with attributes
-theStruct = xmlStructureHandler.xml2structure(fileName);
+theStruct = xml2structure(fileName);
 [T, extScheme] = XMLstructure2XMLtable(theStruct);
 indActiv = find(ismember(T.('Tag_Level_2'), 'activity'));
 numActivities = length(indActiv);
@@ -45,69 +40,25 @@ end
 Tdesc = table(descriptions, 'VariableNames', {'description'});
 Tact = [Tact, Tdesc];
 
-% What are the types of type
-startInd = regexp(Tattrib.type, '^xs:.*');
-customFlag = cellfun(@(x) isempty(x), startInd);
-customInd = find(customFlag);
-[uniqueAttribType, ~, ic] = unique(Tattrib.type(customFlag));
-numUniqueCustomAttribs = length(uniqueAttribType);
-customTypesStruct = repmat(struct('Type', [], 'Values', []), numUniqueCustomAttribs, 1);
-isExternal = false(numUniqueCustomAttribs, 1);
-isEnumeration = false(numUniqueCustomAttribs, 1);
-for a = 1:numUniqueCustomAttribs    
-   attribType = uniqueAttribType(a);
-   customTypesStruct(a).Type = attribType;
-   indElem = ismember(TattribElem.name, attribType);
-   activTable = XMLstructure2XMLtable(xsdStruct.Children(indElem));
-   commentInd = find(strcmp(activTable.('Tag_Level_2'), '#comment'));
-   if ~isempty(commentInd)
-       isExternal(a) = contains(activTable.('Data_Level_2')(commentInd(1)), 'externalDefinition'); % Only the first comment is considered: commentInd(1)
-   else
-       isExternal(a) = false;
-   end
-   if ~isExternal(a) % I guess it is an enumeration
-       enumInd = strcmp(activTable.('Tag_Level_3'), 'xs:enumeration');
-       if ~isempty(enumInd)
-           TtypeAttrib = unfoldAttributesInTable(activTable(enumInd, :), 'Attributes_Level_3', "value");
-           customTypesStruct(a).Values = TtypeAttrib.value;
-           isEnumeration(a) = true;
-       else
-           warning('activityXML2table:unkownDataType', 'I don''t know what to do with this')
-       end
-   end
-end
-
-isExternalComplete = false(numAttribs, 1);
-isExternalComplete(customInd(ismember(ic, find(isExternal)))) = true;
-
-isEnumerationComplete = false(numAttribs, 1);
-isEnumerationComplete(customInd(ismember(ic, find(isEnumeration)))) = true;
-
-Tattrib = [Tattrib, table(customFlag, isExternalComplete, isEnumerationComplete, 'VariableNames', {'custom', 'external', 'enumeration'})];
-% The external column indicates if the data type was declared as external
-% in the xml file. We actually don't have to use that information, but it's
-% good to know maybe for future functionalities. In the actual
-% implementation, we use it in fact. We only reevaluate the variables that
-% are declared as external.
-
 for a = 1:numAttribs
     attribName = Tattrib.name(a);
     attribType = Tattrib.type(a);
     
-    if Tattrib.custom(a)
-        if ~Tattrib.enumeration(a)
-            if ~Tattrib.external(a)
+    if Tattrib.kind(a) ~= "native"
+        if Tattrib.kind(a) ~= "enumeration"
+            if Tattrib.kind(a) ~= "external"
                 warning('activityXML2table:irregularity', 'This data type should be declared as external')
             end
             switch attribType
                 case 'duration'
                     Tact.(char(attribName)) = str2duration(Tact.(char(attribName)));
+                case 'datetime'
+                    Tact.(char(attribName)) = datetime(Tact.(char(attribName)), 'InputFormat', 'yyyy/MM/dd HH:mm:ss');
                 otherwise
                     warning('activityXML2table:unkownDataType', 'I don''t know what to do with this')
             end
         else
-            ind = strcmp(uniqueAttribType, attribType);
-            categ = cellstr(customTypesStruct(ind).Values);
+            categ = cellstr(Tattrib.enumeration{a});
             Tact.(char(attribName)) = categorical(Tact.(char(attribName)), categ, categ);
             
             % Second substitution for default values in case the XML file is invalid.
@@ -119,7 +70,7 @@ for a = 1:numAttribs
             % admitted by the data type, wheter it is because the value we
             % set was incorrect (the XML file was not valid), wheter we the attribute was absent and the
             % default value was an incorrect one (the XSD file is directly
-            % incorrect itself). 
+            % incorrect itself).
             % ¿How are we going to treat those cases?
             % If the default value is incorrect, this is, is not one of the
             % admitted values by the data type, we cannot do anything. The
@@ -128,7 +79,7 @@ for a = 1:numAttribs
             % was set in the XML file is incorrect (not valid XML), then we
             % are going to change the value to the default one.
             undef = isundefined(Tact.(char(attribName)));
-            Tact.(char(attribName))(isundefined(Tact.(char(attribName)))) = ...
+            Tact.(char(attribName))(undef) = ...
                 repmat(categorical(Tattrib.default(a), categ, categ), [sum(undef), 1]);
         end
     else
@@ -172,23 +123,23 @@ end
 % % or developing technical skills. PropFlag.
 % % - development. Whether the activity helps to develop some skill (soft or
 % % hard). PropFlag.
-% 
+%
 % theStruct = xmlStructureHandler.xml2structure(fileName);
-% 
+%
 % % Selecciona solo los elementos hijos del nodo global con la etiqueta 'activity'
 % activities = xmlStructureHandler.getNodesByTag(theStruct.Children, 'activity');
 % numActivities = numel(activities);
-% 
+%
 % mainAttributes = {'name', 'start', 'duration', 'ending', 'category', 'tags', 'description', 'people'};
 % mainAttribDataType = {'string', 'datetime', 'duration', 'datetime', 'activityCategory', 'string', 'string', 'string'};
 % secondaryAttributes = {'focus', 'social', 'exercise', 'game', 'study', 'development'};
 % secondaryAttribDataType = {'PropFlag', 'PropFlag', 'PropFlag', 'PropFlag', 'PropFlag', 'PropFlag'};
 % categoryStrings = {'Exercise', 'Game', 'Work', 'Study', 'Waste', 'Porn', 'Meal', 'Cook'};
-% 
+%
 % variableNames = [mainAttributes, secondaryAttributes];
 % variableDataTypes = [mainAttribDataType, secondaryAttribDataType];
 % numVariableNames = numel(variableNames);
-% 
+%
 % % Crea tabla de actividades
 % data = strings(numActivities, numVariableNames);
 % [propertyIndMatrix, ~] = xmlStructureHandler.existAttributes(activities, variableNames);
@@ -197,9 +148,9 @@ end
 % hasDescription = numChildren > 0;
 % for a = 1:numActivities
 %     ind = propertyIndMatrix(a, :);
-%     values = {activities(a).Attributes(ind(ind ~= 0)).Value};   
+%     values = {activities(a).Attributes(ind(ind ~= 0)).Value};
 %     data(a, ind ~= 0) = values;
-%     
+%
 %     if hasDescription(a)
 %         textNodes = xmlStructureHandler.getNodesByTag(activities(a).Children, '#text');
 %         description = strjoin(string({textNodes.Data}), '\n');
@@ -208,17 +159,17 @@ end
 % end
 % data = mat2cell(data, numActivities, ones(1, numVariableNames));
 % T = table(data{:}, 'VariableNames', variableNames);
-% 
+%
 % % Convierte start y ending a clase datetime y duration a clase duration
 % T.start = datetime(T.start, 'InputFormat', 'yyyy/MM/dd HH:mm:ss');
 % T.ending = datetime(T.ending, 'InputFormat', 'yyyy/MM/dd HH:mm:ss');
-% 
+%
 % % Parse durations
 % names = regexp(T.duration, '(?<value>\d+(\.\d+)?)(?<unit>[hms]*)', 'names');
 % durationMatrix = zeros(numActivities, 3); % [h, m, s]
 % for a = 1:numActivities
 %     numFields = numel(names{a});
-%     
+%
 %     if numFields == 0
 %         durationMatrix(a, :) = NaN;
 %     else
@@ -228,7 +179,7 @@ end
 %         if isnan(value)
 %             value = 0;
 %         end
-%         
+%
 %         switch durationUnit
 %             case 'h'
 %                 durationMatrix(a, 1) = value;
@@ -244,7 +195,7 @@ end
 %     end
 % end
 % T.duration = duration(durationMatrix);
-% 
+%
 % for at = 1:numVariableNames
 %     switch variableDataTypes{at}
 %         case 'PropFlag'
@@ -260,74 +211,74 @@ end
 %             T.(at) = values;
 %     end
 % end
-% 
+%
 % end
-% 
+%
 % % % Old function
 % % function T = activityXML2table(fileName)
 % % obj = xmlStructureHandler(fileName);
-% % 
+% %
 % % % Selecciona solo los elementos hijos del nodo global con la etiqueta 'activity'
 % % activities = obj.getNodesByElementTag('activity');
 % % numActivities = numel(activities);
-% % 
+% %
 % % variableNames = {'name', 'start', 'duration', 'ending', 'tags', 'description'};
 % % numVariableNames = numel(variableNames);
-% % 
+% %
 % % % Crea tabla de actividades
 % % data = cell(numActivities, numVariableNames);
 % % for a = 1:numActivities
 % %     names = {activities(a).Attributes(:).Name};
 % %     values = {activities(a).Attributes(:).Value};
-% %     
+% %
 % %     % Detecta los elementos de texto que son hijos de la actividad. Es la
 % %     % descripción
 % %     if ~isempty(activities(a).Children)
 % %     textFlag = strcmp('#text', {activities(a).Children.Tag});
 % %     description = strjoin({activities(a).Children(textFlag).Data}, sprintf('\n'));
 % %     names = [names, {'description'}];
-% %     values = [values, {description}];       
+% %     values = [values, {description}];
 % %     end
-% %     
+% %
 % %     [flag, ind] = ismember(variableNames, names);
-% %     
+% %
 % %     data(a, flag) = values(ind(flag));
 % % end
-% % 
+% %
 % % data = mat2cell(data, numActivities, ones(1, numVariableNames));
-% % 
+% %
 % % T = table(data{:}, 'VariableNames', variableNames);
-% % 
+% %
 % % % Convierte start y ending a clase datetime y duration a clase duration
 % % for a = 1:numel(T.ending)
 % %     if isempty(T.ending{a})
 % %         T.ending{a} = '';
 % %     end
-% %     
+% %
 % %     if isempty(T.start{a})
 % %         T.start{a} = '';
 % %     end
-% %     
+% %
 % %     if isempty(T.duration{a})
 % %         T.duration{a} = '';
 % %     end
 % % end
-% % 
+% %
 % % T.start = datetime(T.start, 'InputFormat', 'yyyy/MM/dd HH:mm');
 % % T.ending = datetime(T.ending, 'InputFormat', 'yyyy/MM/dd HH:mm');
-% % 
+% %
 % % names = regexp(T.duration, '(?<value>\d+)(?<unit>\D*)', 'names');
 % % durationMatrix = zeros(numActivities, 3); % [h, m, s]
 % % for a = 1:numActivities
 % %     numFields = numel(names{a});
-% %     
+% %
 % %     for k = 1:numFields
 % %         durationUnit = names{a}(k).unit;
 % %         value = str2double(names{a}(k).value);
 % %         if isnan(value)
 % %             value = 0;
 % %         end
-% %         
+% %
 % %         switch durationUnit
 % %             case 'h'
 % %                 durationMatrix(a, 1) = value;

@@ -8,7 +8,12 @@ if slowWay
 else
     str = fileread(xmlFile);
     xsdFileName = regexp(str, 'xsi:noNamespaceSchemaLocation="(.*?)"', 'once', 'tokens');
-    xsdFileName = xsdFileName{1};
+    if ~isempty(xsdFileName)
+        xsdFileName = xsdFileName{1};
+    else
+        xsdFile = '';
+        return;  
+    end
 end
 xmlPath = fileparts(xmlFile);
 [xsdPath, xsdName, xsdExt] = fileparts(xsdFileName);
