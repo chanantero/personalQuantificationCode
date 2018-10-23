@@ -1,6 +1,6 @@
 function Tattrib = XSDfile2XSDattributeTable(xsdFile, elementName)
 
-% Find and read XML schema definition file
+% Read XML schema definition file
 xsdStruct = xml2structure(xsdFile);
 % Find allowed activity attributes
 % 1) Find node of type xs:element whose attribute "name" is "activity

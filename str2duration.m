@@ -1,8 +1,8 @@
 function dur = str2duration(str)
 
-model = 'new';
+model = 'twopoints';
 switch model
-    case 'new'
+    case 'hms'
         names = regexp(str, '(?<value>\d+(\.\d+)?)(?<unit>[hms]*)', 'names');
         N = length(str);
         durationMatrix = zeros(N, 3); % [h, m, s]
@@ -34,8 +34,8 @@ switch model
             end
         end
         dur = duration(durationMatrix);
-    case 'old'
-        names = regexp(str, '(?<hours>\d+):(?<minutes>\d+)', 'names');
+    case 'twopoints'
+        fields = regexp(str, ':' ,'split');
         
         N = numel(str);
         hs = zeros(N, 1);
@@ -43,8 +43,9 @@ switch model
         ss = zeros(N, 1);
         notValid = false(N, 1);
         for k = 1:numel(str)
-            if ~isempty(names{k})
-                hStr = names{k}(1).hours;
+            numFields = length(fields{k});
+            if numFields == 2
+                hStr = fields{k}(1);
                 h = str2double(hStr);
                 if ~isnan(h)
                     hs(k) = h;
@@ -52,17 +53,38 @@ switch model
                     notValid(k) = true;
                 end
                 
-                mStr = names{k}(1).minutes;
+                mStr = fields{k}(2);
                 m = str2double(mStr);
                 if ~isnan(m)
                     ms(k) = m;
                 else
                     notValid(k) = true;
                 end
-            else
-                notValid(k) = true;
-            end
-            
+            elseif numFields == 3
+                hStr = fields{k}(1);
+                h = str2double(hStr);
+                if ~isnan(h)
+                    hs(k) = h;
+                else
+                    notValid(k) = true;
+                end
+                
+                mStr = fields{k}(2);
+                m = str2double(mStr);
+                if ~isnan(m)
+                    ms(k) = m;
+                else
+                    notValid(k) = true;
+                end
+                
+                sStr = fields{k}(3);
+                s = str2double(sStr);
+                if ~isnan(s)
+                    ms(k) = s;
+                else
+                    notValid(k) = true;
+                end
+            end            
         end
         
         dur = duration(hs, ms, ss);

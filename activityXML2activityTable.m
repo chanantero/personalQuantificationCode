@@ -1,4 +1,4 @@
-function Tact = activityXML2table(fileName)
+function Tact = activityXML2activityTable(fileName)
 
 % Find and read XML schema definition file
 xsdFile = getXSDfile(fileName);
