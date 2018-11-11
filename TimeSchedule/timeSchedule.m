@@ -297,7 +297,7 @@ classdef timeSchedule < handle
             N = obj.numActivities;
             obj.activityShapes = gobjects(N, 1);
             for n = 1:N
-                r = rectangle(obj.ax, 'FaceColor', obj.activities.Color{mapSchedToAct(n)}, 'Tag', names_{n});
+                r = rectangle(obj.ax, 'FaceColor', obj.activities.Color{mapSchedToAct(n)}/255, 'Tag', names_{n});
                 r.ButtonDownFcn = @(src, eventdata) obj.shapeButtonDownCallback(src, eventdata);
                 r.DeleteFcn = @(src, eventdata) obj.beingDeletedCallback(src, eventdata);
                 obj.activityShapes(n) = r;
@@ -493,9 +493,9 @@ classdef timeSchedule < handle
             data = [names_, startCol, durationCol, ends_, num2cell(obj.getFixedStart(indices)), types_];
             
             if nargin == 1
-                obj.tableGUI.Data = data; % For the first time
+                obj.tableGUI.Data = cellstr(data); % For the first time
             else
-                obj.tableGUI.Data(indices, :) = data;
+                obj.tableGUI.Data(indices, :) = cellstr(data);
             end
         end
         
@@ -902,28 +902,42 @@ classdef timeSchedule < handle
     
     methods(Static)
         function activityTable = getDefaultActivityTable()
-            hex2norm_RGB = @(s) hex2dec({s(1:2), s(3:4), s(5:6)})'/255;
-            colorRutines = hex2norm_RGB('4EC500');
-            colorMeals = hex2norm_RGB('F6E000');
             
-            data = {'Dormir', [9 0 0], [0 0 0];
-                'Rutina matinal', [1 20 0], colorRutines;
-                'Rutina vespertina', [0 80 0], colorRutines;
-                'Rutina nocturna', [0 30 0], colorRutines;
-                'Desayunar', [0 40 0], colorMeals
-                'Comer', [1 30 0], colorMeals;
-                'Cenar', [1 30 0], colorMeals;
-                'Bloque productivo', [3 0 0], hex2norm_RGB('F300F3');
-                'Default', [1 0 0], hex2norm_RGB('555555');
-                'Trayecto', [0 30 0], hex2norm_RGB('15B4E1');
-                'Social', [1 0 0], hex2norm_RGB('B0F91E')
-                'No intencion', [1 0 0], hex2norm_RGB('32244F');
-                'Ocio', [1 0 0], hex2norm_RGB('98CD14')
-                };
+            categories = string(enumeration(categoryColor.undetermined));
+            numCateg = length(categories);
             
-            data = mat2cell(data, size(data, 1), ones(1, 3));
-            activityTable = table(data{:}, 'VariableNames', {'Type', 'Duration', 'Color'});
+            data = cell(numCateg, 2);
+            for c = 1:numCateg
+                data{c, 1} = [1 0 0];
+                data{c, 2} = [categoryColor(categories(c)).R categoryColor(categories(c)).G categoryColor(categories(c)).B];
+            end
+                              
+            data = mat2cell(data, size(data, 1), ones(1, 2));
+            activityTable = table(categories, data{:}, 'VariableNames', {'Type', 'Duration', 'Color'});
+                        
+%             % Old, before 28/10/2015
+%             hex2norm_RGB = @(s) hex2dec({s(1:2), s(3:4), s(5:6)})'/255;
+%             colorRutines = hex2norm_RGB('4EC500');
+%             colorMeals = hex2norm_RGB('F6E000');
             
+%             data = {'Dormir', [9 0 0], [0 0 0];
+%                 'Rutina matinal', [1 20 0], colorRutines;
+%                 'Rutina vespertina', [0 80 0], colorRutines;
+%                 'Rutina nocturna', [0 30 0], colorRutines;
+%                 'Desayunar', [0 40 0], colorMeals
+%                 'Comer', [1 30 0], colorMeals;
+%                 'Cenar', [1 30 0], colorMeals;
+%                 'Bloque productivo', [3 0 0], hex2norm_RGB('F300F3');
+%                 'Default', [1 0 0], hex2norm_RGB('555555');
+%                 'Trayecto', [0 30 0], hex2norm_RGB('15B4E1');
+%                 'Social', [1 0 0], hex2norm_RGB('B0F91E')
+%                 'No intencion', [1 0 0], hex2norm_RGB('32244F');
+%                 'Ocio', [1 0 0], hex2norm_RGB('98CD14')
+%                 };
+            
+%             data = mat2cell(data, size(data, 1), ones(1, 3));
+%             activityTable = table(data{:}, 'VariableNames', {'Type', 'Duration', 'Color'});
+%             
         end
     end
     

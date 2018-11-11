@@ -1,69 +1,15 @@
-%%
 Tact = activityXML2activityTable('../Datos/Actividades.xml');
-
-filterTags = {'TFM'};
-tags = Tact.tags;
-numAct = size(Tact, 1);
-selInd = false(numAct, 1);
-for ac = 1:numAct
-    tags_ = strsplit(tags{ac}, ';');
-    selInd(ac) = any(ismember(filterTags, tags_));
-end
-
-Tact.category(selInd) = "Study";
-
 
 obj = ActivityHandler(Tact);
 obj.draw()
 
-
-%%
-Tact = activityXML2table('../Datos/Actividades.xml');
-numAct = size(Tact, 1);
-
-selTact = Tact;
-
-% % Filter rows
-% filterTags = {'FocusedIntelectualWork'};
-% tags = selTact.tags;
-% selInd = false(numAct, 1);
-% for ac = 1:numAct
-%     tags_ = strsplit(tags{ac}, ';');
-%     selInd(ac) = any(ismember(filterTags, tags_));
-% end
-% selTact = selTact(selInd, :);
-% 
-
-firstDay = max(dateshift(Tact.start, 'start', 'day')) - days(3);
-selTact = selTact(selTact.start >= firstDay, :);
-
-numActSel = size(selTact, 1);
-
-% If there are NaN values in the duration, calculate it with the end time
-ind = isnan(selTact.duration);
-selTact.duration(ind) = selTact.ending(ind) - selTact.start(ind);
-
-% Transform format of the table so the class timeSchedule can manage it
-Tschedule = selTact(:, {'name', 'start', 'duration', 'tags'});
+Tsched = Tact;
+Tschedule = Tact(:, {'name', 'start', 'duration', 'category'});
 Tschedule.Properties.VariableNames = {'Name', 'Start', 'Duration', 'Tags'};
-    % Keep only the first tag
-for r = 1:numActSel
-    currTags = strsplit(Tschedule.Tags{r}, ';');
-    if isempty(currTags)
-        Tschedule.Tags(r) = {''};
-    else
-        Tschedule.Tags(r) = currTags(1);
-    end
-end
-    % Convert tags
-Tschedule.Tags = strrep(Tschedule.Tags, 'FocusedIntelectualWork', 'Bloque productivo');
-Tschedule.Tags = strrep(Tschedule.Tags, 'ocio', 'Ocio');
-Tschedule.Tags = strrep(Tschedule.Tags, 'social', 'Social');
-Tschedule.Tags = strrep(Tschedule.Tags, 'noPurpose', 'No intencion');
-Tschedule.Tags = strrep(Tschedule.Tags, 'meal', 'Comer');
-Tschedule.Tags = strrep(Tschedule.Tags, 'trayecto', 'Trayecto');
-    % Add flag columns. Not useful, just a formalism
-Tschedule = [Tschedule, table(false(numActSel, 1), false(numActSel, 1), false(numActSel, 1),...
+Tschedule.Tags = cellstr(Tschedule.Tags);
+
+% Add flag columns. Not useful, just a formalism
+Tschedule = [Tschedule, table(false(size(Tschedule, 1), 1), false(size(Tschedule, 1), 1), false(size(Tschedule, 1), 1),...
     'VariableNames', {'FixedStart', 'FixedDuration', 'FixedEnd'})];
 
 % Create timeSchedule object and visualize
@@ -72,72 +18,67 @@ obj = timeSchedule();
 obj.schedule = Tschedule;
 obj.viewSchedule();
 
-%% Horas TFM por día
-% Tact = activityXML2table('../Datos/Actividades.xml');
-% numAct = size(Tact, 1);
+%% Lectura proyectos Project
 
-% Filter rows
-filterTags = {'TFM'};
-tags = Tact.tags;
-selInd = false(numAct, 1);
-for ac = 1:numAct
-    tags_ = strsplit(tags{ac}, ';');
-    selInd(ac) = any(ismember(filterTags, tags_));
-end
-selTact = Tact(selInd, :);
+fileName = '../Plan.xml';
+theStruct = xml2structure(fileName);
+tasksNode = xmlStructureHandler.getNodesByTag(theStruct.Children, 'Tasks');
+taskNodes = tasksNode.Children;
+[T, extScheme] = XMLstructure2XMLtable(taskNodes, 'maxLevel', 3);
 
-% If there are NaN values in the duration, calculate it with the end time
-ind = isnan(selTact.duration);
-selTact.duration(ind) = selTact.ending(ind) - selTact.start(ind);
+startInd = find(strcmp(T.Tag_Level_2, 'Start'));
+finishInd = find(strcmp(T.Tag_Level_2, 'Finish'));
+nameInd = find(strcmp(T.Tag_Level_2, 'Name'));
+outlineLevelInd = find(strcmp(T.Tag_Level_2, 'OutlineLevel'));
+notesInd = find(strcmp(T.Tag_Level_2, 'Notes'));
 
-dates = dateshift(selTact.start, 'start', 'week');
-datesDay = dateshift(selTact.start, 'start', 'day');
-duration = hours(selTact.duration);
-% grpstats(duration, dates, 'sum') % Low level version
-taux = table(dates, datesDay, duration, 'VariableNames', {'day', 'dayIndividual', 'hours'});
-selTact = [selTact, taux];
-Tgrup = grpstats(selTact, 'day', 'sum', 'DataVars', {'hours'});
-Tgrup.day.Format = 'dd-MMM';
-TgrupIndiv = grpstats(selTact, 'dayIndividual', 'sum', 'DataVars', {'hours'});
-TgrupIndiv.dayIndividual.Format = 'dd-MMM';
+outlineLevel = T{outlineLevelInd, 'Data_Level_3'};
+outlineLevel2ind = outlineLevelInd(outlineLevel == "2");
 
+taskHasStart = extScheme(startInd, 1); % Assume taskHasFinish would be the same as taskHasStart
+taskHasOutlineLevel2 = extScheme(outlineLevel2ind, 1);
+numTasks = length(taskHasOutlineLevel2);
+taskHasName = extScheme(nameInd, 1);
+taskHasNotes = extScheme(notesInd, 1);
+
+indNameForTaskWithOL2 = nameInd(ismember(taskHasName, taskHasOutlineLevel2));
+indStartForTaskWithOL2 = startInd(ismember(taskHasStart, taskHasOutlineLevel2));
+indFinishForTaskWithOL2 = finishInd(ismember(taskHasStart, taskHasOutlineLevel2));
+
+start = datetime(T{indStartForTaskWithOL2, 'Data_Level_3'}, 'InputFormat', 'uuuu-MM-dd''T''HH:mm:ss');
+finish = datetime(T{indFinishForTaskWithOL2, 'Data_Level_3'}, 'InputFormat', 'uuuu-MM-dd''T''HH:mm:ss');
+name = T{indNameForTaskWithOL2, 'Data_Level_3'};
+notes = strings(numTasks, 1);
+[flag, ind] = ismember(taskHasOutlineLevel2, taskHasNotes);
+notes(flag) = T{notesInd(ind(flag)), 'Data_Level_3'};
+dur = finish - start;
+
+Tact = table(name, start, finish, dur, notes, 'VariableNames', {'name', 'start', 'ending', 'duration', 'category'});
+
+activityXML = '../Datos/Actividades.xml';
+xsdFile = getXSDfile(activityXML);
+Tattrib = XSDfile2XSDattributeTable(xsdFile, 'activity');
+categ = cellstr(Tattrib{Tattrib.name == "category", 'enumeration'}{1});
+Tact.category = categorical(Tact.category, categ, categ, 'Protected', true);
+Tact.category(isundefined(Tact.category)) = 'undetermined';
+
+obj = ActivityHandler(Tact);
+obj.draw()
+
+Tsel = Tact;
+Tsel.duration = hours(Tsel.duration);
+Tgrp = grpstats(Tsel, 'category', 'sum', 'DataVars', {'duration'}, 'VarNames', {'category', 'GroupCount', 'TotalDuration'});
 ax = axes(figure);
-% plot(ax, Tgrup.day, Tgrup.sum_hours, 'o');
-% ax.YLim = [0, 10];
-daysPassed = days(Tgrup.day - datetime('01/Jan/2018'));
-bar(ax, daysPassed, Tgrup.sum_hours)
-numXTicks = 20;
-step = max(floor(size(Tgrup, 1)/numXTicks), 1);
-indTick = 1:step:size(Tgrup, 1);
-ax.XTick = daysPassed(indTick);
-ax.XTickLabels = cellstr(Tgrup.day(indTick));
-ax.XTickLabelRotation = 70;
+bar(ax, Tgrp.category, Tgrp.TotalDuration)
 
-% Day by Day
-ax = axes(figure);
-% plot(ax, Tgrup.day, Tgrup.sum_hours, 'o');
-% ax.YLim = [0, 10];
-daysPassed = days(TgrupIndiv.dayIndividual - datetime('01/Jan/2018'));
-bar(ax, daysPassed, TgrupIndiv.sum_hours)
-numXTicks = 20;
-step = max(floor(size(TgrupIndiv, 1)/numXTicks), 1);
-indTick = 1:step:size(TgrupIndiv, 1);
-ax.XTick = daysPassed(indTick);
-ax.XTickLabels = cellstr(TgrupIndiv.dayIndividual(indTick));
-ax.XTickLabelRotation = 70;
+Tschedule = Tact(:, {'name', 'start', 'duration', 'category'});
+Tschedule.Properties.VariableNames = {'Name', 'Start', 'Duration', 'Tags'};
+Tschedule.Tags = cellstr(Tschedule.Tags);
+Tschedule = [Tschedule, table(false(size(Tschedule, 1), 1), false(size(Tschedule, 1), 1), false(size(Tschedule, 1), 1),...
+    'VariableNames', {'FixedStart', 'FixedDuration', 'FixedEnd'})];
+addpath('TimeSchedule')
+obj = timeSchedule();
+obj.schedule = Tschedule;
+obj.viewSchedule();
 
 
-ax = axes(figure);
-daysPassed = days(Tgrup.day - datetime('01/Jan/2018'));
-stairs(ax, daysPassed, cumsum(Tgrup.sum_hours))
-numXTicks = 20;
-step = max(floor(size(Tgrup, 1)/numXTicks), 1);
-indTick = 1:step:size(Tgrup, 1);
-ax.XTick = daysPassed(indTick);
-ax.XTickLabels = cellstr(Tgrup.day(indTick));
-ax.XTickLabelRotation = 70;
-
-
-
-% plot(ax, Tgrup.day, Tgrup.sum_hours)
-% ax.XAxis
