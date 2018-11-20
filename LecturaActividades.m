@@ -1,67 +1,24 @@
+%% Lectura actividades
 Tact = activityXML2activityTable('../Datos/Actividades.xml');
 
-obj = ActivityHandler(Tact);
-obj.draw()
-
-Tsched = Tact;
-Tschedule = Tact(:, {'name', 'start', 'duration', 'category'});
-Tschedule.Properties.VariableNames = {'Name', 'Start', 'Duration', 'Tags'};
-Tschedule.Tags = cellstr(Tschedule.Tags);
-
-% Add flag columns. Not useful, just a formalism
-Tschedule = [Tschedule, table(false(size(Tschedule, 1), 1), false(size(Tschedule, 1), 1), false(size(Tschedule, 1), 1),...
-    'VariableNames', {'FixedStart', 'FixedDuration', 'FixedEnd'})];
-
-% Create timeSchedule object and visualize
-addpath('TimeSchedule')
-obj = timeSchedule();
-obj.schedule = Tschedule;
-obj.viewSchedule();
-
 %% Lectura proyectos Project
+TactProj = projectXMLplan2activityTable('../Plan.xml');
 
-fileName = '../Plan.xml';
-theStruct = xml2structure(fileName);
-tasksNode = xmlStructureHandler.getNodesByTag(theStruct.Children, 'Tasks');
-taskNodes = tasksNode.Children;
-[T, extScheme] = XMLstructure2XMLtable(taskNodes, 'maxLevel', 3);
+%% Exportación a CSV para análisis con Tableau (por ejemplo)
 
-startInd = find(strcmp(T.Tag_Level_2, 'Start'));
-finishInd = find(strcmp(T.Tag_Level_2, 'Finish'));
-nameInd = find(strcmp(T.Tag_Level_2, 'Name'));
-outlineLevelInd = find(strcmp(T.Tag_Level_2, 'OutlineLevel'));
-notesInd = find(strcmp(T.Tag_Level_2, 'Notes'));
+TactAux = [Tact, table(false(size(Tact, 1), 1), 'VariableNames', {'plan'})];
+TactProjAux = [TactProj, table(true(size(TactProj, 1), 1), 'VariableNames', {'plan'})];
 
-outlineLevel = T{outlineLevelInd, 'Data_Level_3'};
-outlineLevel2ind = outlineLevelInd(outlineLevel == "2");
+% Actualiza la fecha del plan para ir a la última semana
+aux = dateshift(Tact.start, 'dayofweek', 'monday');
+lastMonday = dateshift(max(aux) - caldays(7), 'start', 'day');
+mondayPlan = dateshift(min(TactProjAux.start), 'start', 'day');
+TactProjAux.start = TactProjAux.start + (lastMonday - mondayPlan);
 
-taskHasStart = extScheme(startInd, 1); % Assume taskHasFinish would be the same as taskHasStart
-taskHasOutlineLevel2 = extScheme(outlineLevel2ind, 1);
-numTasks = length(taskHasOutlineLevel2);
-taskHasName = extScheme(nameInd, 1);
-taskHasNotes = extScheme(notesInd, 1);
+Taux = [TactAux; TactProjAux];
+writetable(Taux, '../Datos/ActividadesAnalisis.csv');
 
-indNameForTaskWithOL2 = nameInd(ismember(taskHasName, taskHasOutlineLevel2));
-indStartForTaskWithOL2 = startInd(ismember(taskHasStart, taskHasOutlineLevel2));
-indFinishForTaskWithOL2 = finishInd(ismember(taskHasStart, taskHasOutlineLevel2));
-
-start = datetime(T{indStartForTaskWithOL2, 'Data_Level_3'}, 'InputFormat', 'uuuu-MM-dd''T''HH:mm:ss');
-finish = datetime(T{indFinishForTaskWithOL2, 'Data_Level_3'}, 'InputFormat', 'uuuu-MM-dd''T''HH:mm:ss');
-name = T{indNameForTaskWithOL2, 'Data_Level_3'};
-notes = strings(numTasks, 1);
-[flag, ind] = ismember(taskHasOutlineLevel2, taskHasNotes);
-notes(flag) = T{notesInd(ind(flag)), 'Data_Level_3'};
-dur = finish - start;
-
-Tact = table(name, start, finish, dur, notes, 'VariableNames', {'name', 'start', 'ending', 'duration', 'category'});
-
-activityXML = '../Datos/Actividades.xml';
-xsdFile = getXSDfile(activityXML);
-Tattrib = XSDfile2XSDattributeTable(xsdFile, 'activity');
-categ = cellstr(Tattrib{Tattrib.name == "category", 'enumeration'}{1});
-Tact.category = categorical(Tact.category, categ, categ, 'Protected', true);
-Tact.category(isundefined(Tact.category)) = 'undetermined';
-
+%%
 obj = ActivityHandler(Tact);
 obj.draw()
 
@@ -71,14 +28,44 @@ Tgrp = grpstats(Tsel, 'category', 'sum', 'DataVars', {'duration'}, 'VarNames', {
 ax = axes(figure);
 bar(ax, Tgrp.category, Tgrp.TotalDuration)
 
-Tschedule = Tact(:, {'name', 'start', 'duration', 'category'});
-Tschedule.Properties.VariableNames = {'Name', 'Start', 'Duration', 'Tags'};
-Tschedule.Tags = cellstr(Tschedule.Tags);
-Tschedule = [Tschedule, table(false(size(Tschedule, 1), 1), false(size(Tschedule, 1), 1), false(size(Tschedule, 1), 1),...
-    'VariableNames', {'FixedStart', 'FixedDuration', 'FixedEnd'})];
+%% Compare the amount of time planned and actually dedicated to a category
+
+% Grpstats
+    % without table
+% weekBeginning = dateshift(Tact.start, 'start', 'week');
+% [dur, name] = grpstats(hours(Tact.duration), {Tact.category, weekBeginning}, {'sum', 'gname'});
+% name = string(name);
+    % with table
+TactProjAux = TactProj;
+TactProjAux.duration = hours(TactProjAux.duration);
+TgrpProj = grpstats(TactProjAux, {'category'}, 'sum', 'DataVars', 'duration');
+
+TactAux.duration = hours(TactAux.duration);
+Tgrp = grpstats(TactAux, {'category', 'weekBeginning'}, 'sum', 'DataVars', 'duration');
+
+ind = Tgrp.category == "work";
+ax = axes(figure, 'NextPlot', 'Add');
+bar(ax, Tgrp.weekBeginning(ind), Tgrp.sum_duration(ind))
+
+
+%% Visualize with timeSchedule objects
+
+TscheduleAct = activityTable2scheduleTable(Tact);
+TscheduleProj = activityTable2scheduleTable(Tact);
+
 addpath('TimeSchedule')
-obj = timeSchedule();
-obj.schedule = Tschedule;
-obj.viewSchedule();
+
+% Create timeSchedule object and visualize
+objAct = timeSchedule();
+objAct.schedule = Tschedule;
+objAct.viewSchedule();
+
+objProj = timeSchedule();
+objProj.schedule = Tschedule;
+objProj.viewSchedule();
+
+%%
+
+
 
 

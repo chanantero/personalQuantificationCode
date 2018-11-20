@@ -72,7 +72,16 @@ for e = 1:numEntries
     indAttr = ind(flag);
     numFoundAttribs = nnz(flag);
     for a = 1:numFoundAttribs
-        Tact{e, char(TattribSel.name(ind(a)))} = categorical(TattribSel.enumeration{indAttr(a)}(1), TattribSel.enumeration{indAttr(a)}, TattribSel.enumeration{indAttr(a)});
+        Tact{e, char(TattribSel.name(indAttr(a)))} = categorical(TattribSel.enumeration{indAttr(a)}(1), TattribSel.enumeration{indAttr(a)}, TattribSel.enumeration{indAttr(a)});
+    end
+    
+    % Extra non-recognized tags go to the tags variable, if it exists. If
+    % it doesn't, this tags in toggl get lost
+    tagsCandidates = ["tags", "Tags", "Tag", "tag"];
+    flagTags = ismember(tagsCandidates, Tattrib.name);
+    if any(flagTags)
+        tagsName = char(tagsCandidates(flagTags));
+        Tact{e, tagsName} = strjoin(tags(~flag),";");
     end
 end
 

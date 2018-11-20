@@ -80,7 +80,7 @@ switch model
                 sStr = fields{k}(3);
                 s = str2double(sStr);
                 if ~isnan(s)
-                    ms(k) = s;
+                    ss(k) = s;
                 else
                     notValid(k) = true;
                 end
