@@ -2,21 +2,31 @@
 Tact = activityXML2activityTable('../Datos/Actividades.xml');
 
 %% Lectura proyectos Project
-TactProj = projectXMLplan2activityTable('../Plan.xml');
+TactProj = projectXMLplan2activityTable('../Plan semanal actual.xml');
+TactProjAux = [TactProj, table(true(size(TactProj, 1), 1), 'VariableNames', {'plan'})];
+writetable(TactProjAux, '../Datos/ActividadesPlan.csv');
 
 %% Exportación a CSV para análisis con Tableau (por ejemplo)
 
 TactAux = [Tact, table(false(size(Tact, 1), 1), 'VariableNames', {'plan'})];
-TactProjAux = [TactProj, table(true(size(TactProj, 1), 1), 'VariableNames', {'plan'})];
 
-% Actualiza la fecha del plan para ir a la última semana
-aux = dateshift(Tact.start, 'dayofweek', 'monday');
-lastMonday = dateshift(max(aux) - caldays(7), 'start', 'day');
-mondayPlan = dateshift(min(TactProjAux.start), 'start', 'day');
-TactProjAux.start = TactProjAux.start + (lastMonday - mondayPlan);
+includePlan = false;
+if includePlan    
+    TactProjAux = readtable('../Datos/ActividadesPlan.csv');
+    
+    % Actualiza la fecha del plan para ir a la última semana
+    aux = dateshift(Tact.start, 'dayofweek', 'monday');
+    lastMonday = dateshift(max(aux) - caldays(7), 'start', 'day');
+    mondayPlan = dateshift(min(TactProjAux.start), 'start', 'day');
+    TactProjAux.start = TactProjAux.start + between(mondayPlan, lastMonday);
+    
+    Taux = [TactAux; TactProjAux];
+    writetable(Taux, '../Datos/ActividadesAnalisis.csv');
+else
+    Taux = TactAux;
+    writetable(Taux, '../Datos/ActividadesAnalisisNoPlan.csv');
+end
 
-Taux = [TactAux; TactProjAux];
-writetable(Taux, '../Datos/ActividadesAnalisis.csv');
 
 %%
 obj = ActivityHandler(Tact);

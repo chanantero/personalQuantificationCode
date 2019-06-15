@@ -27,9 +27,9 @@ isDayChild = false(numLeaves, 1);
 isElementChild = false(numLeaves, 1);
 isText = false(numLeaves, 1);
 for r = 1:numLeaves
-    isDayChild(r) = strcmp(extTable.('Tags_Level_1'){r}, 'day');
-    isElementChild(r) = strcmp(extTable.('Tags_Level_2'){r}, 'element');
-    isText(r) = strcmp(extTable.('Tags_Level_3'){r}, '#text');
+    isDayChild(r) = strcmp(extTable.('Tag_Level_1'){r}, 'day');
+    isElementChild(r) = strcmp(extTable.('Tag_Level_2'){r}, 'element');
+    isText(r) = strcmp(extTable.('Tag_Level_3'){r}, '#text');
 end
 
 filter = collapsedIndices & isDayChild & isElementChild & (isText | leafDepth == 2);

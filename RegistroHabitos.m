@@ -3,10 +3,10 @@
 habitXML = '../Datos/Registro cuantificable.xml';
 habitBullFileName = '../Datos/HabitBull CSV Data File Export 22-07-2018.csv';
 
-% Importa nuevos hábitos
+% Importa nuevos hïhábitosbitos
 ThabitBull = habitBullExport2habitTable(habitBullFileName);
 
-% Importa los hábitos registrad2s hasta ahora
+% Importa los hï¿½hábitos registrad2s hasta ahora
 Thabit = habitXML2table(habitXML);
 
 % Concatena ambas tablas.
@@ -19,3 +19,11 @@ T = [ThabitBull(indNewRows, :); Thabit];
 
 % Escribe la nueva información
 habitTable2XML(T, habitXML);
+
+
+%%
+habitXML = '../Datos/Hábitos/Registro cuantificable.xml';
+habitBullFileName = '../Datos/Hábitos/HabitBull CSV Data File Export_15-06-2019.csv';
+
+obj = HabitTracker(habitXML);
+obj.registerHabits(habitBullFileName);

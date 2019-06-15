@@ -2,7 +2,7 @@
 
 % Forma con toggl app
 activityXML = '../Datos/Actividades.xml';
-togglFileName = '../Datos/Toggl_time_entries_2018-10-01_to_2018-11-18.csv';
+togglFileName = '../Datos/Toggl_time_entries_2018-12-16_to_2018-12-22.csv';
 
 % Importa actividades
 xsdFile = getXSDfile(activityXML);

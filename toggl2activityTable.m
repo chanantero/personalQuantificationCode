@@ -67,7 +67,11 @@ for k = 1:size(TattribSel, 1)
 end
 
 for e = 1:numEntries
-    tags = strsplit(Ttoggl.Tags(e), ", ");
+    if ~isnan(Ttoggl.Tags(e))
+        tags = strsplit(Ttoggl.Tags(e), ", ");
+    else
+        tags = string([]);
+    end
     [flag, ind] = ismember(tags, TattribSel.name);
     indAttr = ind(flag);
     numFoundAttribs = nnz(flag);
