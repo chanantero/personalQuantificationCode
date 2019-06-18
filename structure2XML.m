@@ -8,16 +8,16 @@ if nargin < 4
     beforeFlag = false;
 end
 
+DocNode = xmlread(fileName);
 if appendFlag
-    DocNode = xmlread(fileName);
     DOMnode = DocNode.getDocumentElement;
     doctype = DocNode.getDoctype;
-    DOMnode = structure2DOMnode(theStruct, DOMnode, DocNode, 'insertBefore', beforeFlag);
+    DOMnode = XmlTools.structure2DOMnode(theStruct, DOMnode, DocNode, 'insertBefore', beforeFlag);
 else
-    DOMnode = structure2DOMnode( theStruct );
+    DOMnode = XmlTools.structure2DOMnode( theStruct );
 end
 
-xmlwrite(fileName, DocNode); % Before it was wrong: xmlwrite(fileName, DOMnode);
+xmlwrite(fileName, DOMnode, DocNode); % Before it was wrong: xmlwrite(fileName, DOMnode);
 
 end
 

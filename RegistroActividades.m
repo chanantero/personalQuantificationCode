@@ -6,7 +6,7 @@ togglFileName = '../Datos/Toggl_time_entries_2018-12-16_to_2018-12-22.csv';
 
 % Importa actividades
 xsdFile = getXSDfile(activityXML);
-Tattrib = XSDfile2XSDattributeTable(xsdFile, 'activity');
+Tattrib = XmlTools.XSDfile2XSDattributeTable(xsdFile, 'activity');
 Ttoggl = toggl2activityTable(togglFileName, Tattrib, 'unset2default', false);
 
 % Haz las modificaciones pertinentes
@@ -15,7 +15,7 @@ Ttoggl = toggl2activityTable(togglFileName, Tattrib, 'unset2default', false);
 % Lee las actividades ya registradas
 Tact = activityXML2activityTable(activityXML);
 
-% Añade solo las actividades posteriores a la actividad más reciente
+% Aï¿½ade solo las actividades posteriores a la actividad mï¿½s reciente
 % registrada
 lastRegisteredStartTime = max(Tact.start);
 if isscalar(lastRegisteredStartTime)
@@ -24,7 +24,7 @@ end
 
 [Txml, extScheme] = activityTable2XMLtable(Ttoggl, Tattrib, 'includeDefaults', false);
 if ~isempty(Txml)
-    theStruct = XMLtable2XMLstructure(Txml, extScheme); 
+    theStruct = XmlTools.XMLtable2XMLstructure(Txml, extScheme); 
     theStructGlob = struct('Tag', 'global', 'Data', [], 'Attributes', [], 'Children', theStruct); % theStructGlobal is scalar (one global parent node)
     structure2XML( theStructGlob, activityXML, true, true ); % append = true
 end
@@ -41,7 +41,7 @@ end
 % % Haz las modificaciones pertinentes
 % % ...
 % 
-% % Añade nuevas actividades al XML. Como los voy a añadir sí o sí, sin
+% % Aï¿½ade nuevas actividades al XML. Como los voy a aï¿½adir sï¿½ o sï¿½, sin
 % % necesidad de comprobar si ya existe o no, no hace falta que extraiga la
 % % tabla ya existente
 % % Read de xml file
@@ -56,5 +56,5 @@ end
 % Concatena ambas tablas
 % T = [Tultrachron; Tact];
 
-% % Escribe la nueva información
+% % Escribe la nueva informaciï¿½n
 % activityTable2XML( T, activityXML);

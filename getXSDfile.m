@@ -2,7 +2,7 @@ function [xsdFile] = getXSDfile(xmlFile)
 % Find XML schema definition file
 slowWay = false;
 if slowWay
-    xmlStruct = xml2structure(xmlFile);
+    xmlStruct = XmlTools.xml2structure(xmlFile);
     flag = strcmp({xmlStruct.Attributes.Name}, 'xsi:noNamespaceSchemaLocation');
     xsdFileName = xmlStruct.Attributes(flag).Value;
 else

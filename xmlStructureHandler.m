@@ -26,7 +26,7 @@ classdef xmlStructureHandler < handle
             DOMnode = xmlread(fileName);
             
             % Create the structure
-            theStruct = parseChildNodes(DOMnode);
+            theStruct = XmlTools.parseChildNodes(DOMnode);
         end
         
         function [propertyIndMatrix, extraAttributes] = existAttributes(nodes, attributeNames)
@@ -47,7 +47,7 @@ classdef xmlStructureHandler < handle
         
         function numChildren = getNumberOfChildren(nodes)
 %             % One way
-%             absoluteTreeScheme = getTreeAbsoluteScheme(nodes);
+%             absoluteTreeScheme = TreeStructureTools.getTreeAbsoluteScheme(nodes);
 %             numChildren = absoluteTreeScheme{1};
             
             % Other way, more efficient

@@ -1,10 +1,10 @@
 function T = habitXML2table(fileName)
 % fileName = '../Datos/Registro cuantificable.txt';
 
-nodeTreeStruct = xml2structure(fileName);
+nodeTreeStruct = XmlTools.xml2structure(fileName);
 
 joinTables = true;
-[extTable, nodeIndexMatrix] = XMLstructure2ExtendedTables(nodeTreeStruct, joinTables);
+[extTable, nodeIndexMatrix] = XmlTools.XMLstructure2ExtendedTables(nodeTreeStruct, joinTables);
 
 if size(nodeIndexMatrix, 2) < 3
     error('At least 3 levels of depth must be present in the structure')
@@ -13,12 +13,12 @@ end
 
 % Compute some tree structure parameters
 numLeaves = size(extTable, 1);
-leafDepth = getLeafLevel(nodeIndexMatrix);
+leafDepth = TreeStructureTools.getLeafLevel(nodeIndexMatrix);
 
 % There aren't supposed to be more than three levels. In any case, if there
 % are more, we are not interested in them, so we are going to collapse any
 % leafes with a depth greater than 3.
-collapsedIndices = collapseTreeByLevel( nodeIndexMatrix, 3 );
+collapsedIndices = TreeStructureTools.collapseTreeByLevel( nodeIndexMatrix, 3 );
 
 % Filter only those leaves with tag #text that are children of second level nodes with tag
 % 'element' and children of first level nodes with tag day. Leafs that are
@@ -38,7 +38,7 @@ nodeIndexMatrix = nodeIndexMatrix(filter, :);
 
 % Get the first child of every element on the second level. This is the
 % same as collapsing the current tree to the second level.
-collapsedIndices = collapseTreeByLevel( nodeIndexMatrix, 2 );
+collapsedIndices = TreeStructureTools.collapseTreeByLevel( nodeIndexMatrix, 2 );
 extTable = extTable(collapsedIndices, :);
 numElements = size(collapsedIndices, 1);
 
@@ -82,7 +82,7 @@ end
 
 % % Old version
 % function T = habitXML2table(fileName)
-% theStruct = xml2structure(fileName);
+% theStruct = XmlTools.xml2structure(fileName);
 % 
 % % Clean structure and make it easy to use
 %     % Filter day elements
@@ -116,20 +116,20 @@ end
 % % % the vector is the index of the child in the i-th level of depth. The
 % % % parent node of the tree is level 0.
 % % nodeDirection = [2, 3];
-% % node = getTreeNode(theStruct, nodeDirection);
+% % node = TreeStructureTools.getTreeNode(theStruct, nodeDirection);
 % 
 % % % Based on the absolute index of a node in the i-th depth level, find the node
 % % % direction. We need to use the numberScheme calculated by getTreeStruct
 % % depthLevel = 2;
 % % nodeIndex = 5;
-% % nodeDirection = absoluteIndex2NodeDirection( treeScheme, depthLevel, nodeIndex );
+% % nodeDirection = TreeStructureTools.absoluteIndex2NodeDirection( treeScheme, depthLevel, nodeIndex );
 % 
 % % Associate data to each node. For each depth, you can find the data with a
 % % relative strucutre direction
 % dataDirection = {[], '.Attributes.Value', '.Attributes.Value', '.Data' };
 % 
 % % Go through all the tree and get the data for every node
-% [absoluteTreeScheme, dataTree] = getTreeAbsoluteSchemeAndData( theStruct, dataDirection );
+% [absoluteTreeScheme, dataTree] = TreeStructureTools.getTreeAbsoluteSchemeAndData( theStruct, dataDirection );
 % 
 % % Extend everything to fit a table format
 % numLevels = numel(absoluteTreeScheme);

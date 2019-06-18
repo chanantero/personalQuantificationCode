@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<global_tag>
+   <child_element name="existing_child">Hola<granchild/></child_element>
+</global_tag>

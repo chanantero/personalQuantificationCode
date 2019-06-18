@@ -2,6 +2,6 @@ function habitTable2XML(T, fileName)
 
 theStruct = habitTable2structure(T);
 
-structure2XML(theStruct, fileName);
+XmlTools.structure2XML(theStruct, fileName, true, true);
 
 end

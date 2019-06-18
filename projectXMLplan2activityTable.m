@@ -6,10 +6,10 @@ function [Tact] = projectXMLplan2activityTable(fileName)
 % general or intended to work with much flexibility. It is rather intended
 % for grouping code that maybe, in a future, I will extend and improve.
 
-theStruct = xml2structure(fileName);
+theStruct = XmlTools.xml2structure(fileName);
 tasksNode = xmlStructureHandler.getNodesByTag(theStruct.Children, 'Tasks');
 taskNodes = tasksNode.Children;
-[T, extScheme] = XMLstructure2XMLtable(taskNodes, 'maxLevel', 3);
+[T, extScheme] = XmlTools.XMLstructure2XMLtable(taskNodes, 'maxLevel', 3);
 
 startInd = find(strcmp(T.Tag_Level_2, 'Start'));
 finishInd = find(strcmp(T.Tag_Level_2, 'Finish'));
@@ -42,7 +42,7 @@ Tact = table(name, start, finish, dur, notes, 'VariableNames', {'name', 'start',
 
 activityXML = '../Datos/Actividades.xml';
 xsdFile = getXSDfile(activityXML);
-Tattrib = XSDfile2XSDattributeTable(xsdFile, 'activity');
+Tattrib = XmlTools.XSDfile2XSDattributeTable(xsdFile, 'activity');
 categ = cellstr(Tattrib{Tattrib.name == "category", 'enumeration'}{1});
 Tact.category = categorical(Tact.category, categ, categ, 'Protected', true);
 Tact.category(isundefined(Tact.category)) = 'undetermined';

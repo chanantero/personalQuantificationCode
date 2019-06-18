@@ -8,17 +8,17 @@ invalidDataAction = p.Results.invalidDataAction;
 % Find and read XML schema definition file
 xsdFile = getXSDfile(fileName);
 if ~isempty(xsdFile)
-    Tattrib = XSDfile2XSDattributeTable(xsdFile, 'activity');
+    Tattrib = XmlTools.XSDfile2XSDattributeTable(xsdFile, 'activity');
 else
     error('activityXML2table:noXSD', 'The XML file has no XSD scheme referenced')
-    % Completar un Tattrib con los campos que sé que uso sí o sí: start,
+    % Completar un Tattrib con los campos que sï¿½ que uso sï¿½ o sï¿½: start,
     % ending, duration, tags, category, etc.
 end
 numAttribs = size(Tattrib, 1);
 
 % Create table with attributes
-theStruct = xml2structure(fileName);
-[T, extScheme] = XMLstructure2XMLtable(theStruct);
+theStruct = XmlTools.xml2structure(fileName);
+[T, extScheme] = XmlTools.XMLstructure2XMLtable(theStruct);
 indActiv = find(ismember(T.('Tag_Level_2'), 'activity'));
 numActivities = length(indActiv);
 [Tact, attribIndices] = unfoldAttributesInTable(T(indActiv, :), 'Attributes_Level_2', Tattrib.name);
@@ -30,7 +30,7 @@ for a = 1:numAttribs
 end
 
 % Add descriptions
-absScheme = extended2absoluteTreeScheme(extScheme);
+absScheme = TreeStructureTools.extended2absoluteTreeScheme(extScheme);
 numChildren = absScheme{2};
 hasDescription = numChildren(indActiv) > 0;
 descriptions = strings(numActivities, 1);
@@ -187,7 +187,7 @@ end
 % %     values = {activities(a).Attributes(:).Value};
 % %
 % %     % Detecta los elementos de texto que son hijos de la actividad. Es la
-% %     % descripción
+% %     % descripciï¿½n
 % %     if ~isempty(activities(a).Children)
 % %     textFlag = strcmp('#text', {activities(a).Children.Tag});
 % %     description = strjoin({activities(a).Children(textFlag).Data}, sprintf('\n'));
