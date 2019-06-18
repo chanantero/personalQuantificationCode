@@ -4,7 +4,7 @@ function T = habitXML2table(fileName)
 nodeTreeStruct = XmlTools.xml2structure(fileName);
 
 joinTables = true;
-[extTable, nodeIndexMatrix] = XmlTools.XMLstructure2ExtendedTables(nodeTreeStruct, joinTables);
+[extTable, nodeIndexMatrix] = XmlTools.XMLstructure2ExtendedTables(nodeTreeStruct.Children, joinTables);
 
 if size(nodeIndexMatrix, 2) < 3
     error('At least 3 levels of depth must be present in the structure')

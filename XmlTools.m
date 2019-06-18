@@ -183,8 +183,8 @@ classdef XmlTools
                 beforeFlag = false;
             end
             
-            DocNode = xmlread(fileName);
             if appendFlag
+                DocNode = xmlread(fileName);
                 DOMnode = DocNode.getDocumentElement;
                 doctype = DocNode.getDoctype;
                 DOMnode = XmlTools.removeWhiteSpaceNodes(DOMnode);
@@ -193,7 +193,7 @@ classdef XmlTools
                 DOMnode = XmlTools.structure2DOMnode( theStruct );
             end
             
-            xmlwrite(fileName, DOMnode, DocNode); % Before it was wrong: xmlwrite(fileName, DOMnode);
+            xmlwrite(fileName, DOMnode); % Before it was wrong: xmlwrite(fileName, DOMnode);
         end
 
         function theStruct = xml2structure(fileName)
