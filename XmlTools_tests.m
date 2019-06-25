@@ -117,11 +117,57 @@ classdef XmlTools_tests < matlab.unittest.TestCase
 
             % Then
             xml_text = fileread(XmlTools_tests.test_xml_file_name);
+    
+            testCase.assertEqual(xml_text, xml_expected_text);
+        end
+
+        function should_append_to_existing_xml_from_structure_with_before_flag(testCase)
+            % Given
+            xml_existing_text = sprintf(['%s\n',...          
+            '<global_tag>\n',...
+            '   <child_element name="existing_child"/>\n',...
+            '</global_tag>'], XmlTools_tests.xml_file_heading);
+
+            f = fopen(XmlTools_tests.test_xml_file_name, 'w');
+            fwrite(f, xml_existing_text);
+            fclose(f);
+
+            structure = XmlTools_tests.generateXmlEmptyStructure();
+            structure.Tag = 'global_tag';
+            structure.Children = XmlTools_tests.generateXmlEmptyStructure(2);
+            
+            structure.Children(1).Tag = 'child_element';
+            structure.Children(1).Attributes = XmlTools_tests.generateAttributeEmptyStructure(2);
+            structure.Children(1).Attributes(1).Name = 'attr1';
+            structure.Children(1).Attributes(1).Value = 'val1';
+            structure.Children(1).Attributes(2).Name = 'attr2';
+            structure.Children(1).Attributes(2).Value = 'val2';
+            
+            structure.Children(2).Tag = 'child_element';
+            structure.Children(2).Attributes = XmlTools_tests.generateAttributeEmptyStructure(1);
+            structure.Children(2).Attributes(1).Name = 'attr1';
+            structure.Children(2).Attributes(1).Value = 'val1';
+            structure.Children(2).Children = XmlTools_tests.generateXmlEmptyStructure();
+            structure.Children(2).Children.Tag = '#text';
+            structure.Children(2).Children.Data = 'Hello world!';
+            
+            xml_expected_text = sprintf(['%s\n',...          
+                '<global_tag>\n',...
+                '   <child_element attr1="val1">Hello world!</child_element>\n',...
+                '   <child_element attr1="val1" attr2="val2"/>\n',...
+                '   <child_element name="existing_child"/>\n',...
+                '</global_tag>'], XmlTools_tests.xml_file_heading);
+
+            % When
+            XmlTools.structure2XML(structure, XmlTools_tests.test_xml_file_name, true, true);
+
+            % Then
+            xml_text = fileread(XmlTools_tests.test_xml_file_name);
             
             testCase.assertEqual(xml_text, xml_expected_text);
         end
         
-        function should_not_modify_xml_file_when_no_modification_is_applied_to_structure(testCase)
+        function should_not_modify_xml_file_when_structure_is_left_the_same(testCase)
             xml_existing_text = sprintf(['%s\n',...          
             '<global_tag>\n',...
             '   <child_element name="existing_child">\n',...
