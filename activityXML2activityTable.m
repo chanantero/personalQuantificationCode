@@ -6,7 +6,7 @@ parse(p, varargin{:})
 invalidDataAction = p.Results.invalidDataAction;
 
 % Find and read XML schema definition file
-xsdFile = getXSDfile(fileName);
+xsdFile = XmlTools.getXSDfile(fileName);
 if ~isempty(xsdFile)
     Tattrib = XmlTools.XSDfile2XSDattributeTable(xsdFile, 'activity');
 else

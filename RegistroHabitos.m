@@ -4,10 +4,10 @@ habitXML = '../Datos/Registro cuantificable.xml';
 habitBullFileName = '../Datos/HabitBull CSV Data File Export 22-07-2018.csv';
 
 % Importa nuevos hïhábitosbitos
-ThabitBull = habitBullExport2habitTable(habitBullFileName);
+ThabitBull = HabitTracker.habitBullExport2habitTable(habitBullFileName);
 
 % Importa los hï¿½hábitos registrad2s hasta ahora
-Thabit = habitXML2table(habitXML);
+Thabit = HabitTracker.habitXML2table(habitXML);
 
 % Concatena ambas tablas.
 % Ten en cuenta que no quieres sobrescribir los registros de los días que
@@ -18,7 +18,7 @@ ThabitBull(ThabitBull.Date < datetime(2018, 1, 1), :) = []; % Antes el hábito de
 T = [ThabitBull(indNewRows, :); Thabit];
 
 % Escribe la nueva información
-habitTable2XML(T, habitXML);
+HabitTracker.habitTable2XML(T, habitXML);
 
 
 %%

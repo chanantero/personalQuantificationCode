@@ -5,7 +5,7 @@ activityXML = '../Datos/Actividades.xml';
 togglFileName = '../Datos/Toggl_time_entries_2018-12-16_to_2018-12-22.csv';
 
 % Importa actividades
-xsdFile = getXSDfile(activityXML);
+xsdFile = XmlTools.getXSDfile(activityXML);
 Tattrib = XmlTools.XSDfile2XSDattributeTable(xsdFile, 'activity');
 Ttoggl = toggl2activityTable(togglFileName, Tattrib, 'unset2default', false);
 

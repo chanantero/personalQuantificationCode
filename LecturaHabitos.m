@@ -1,5 +1,5 @@
 %% Read xml and generate a readable structure
-T = habitXML2table('../Datos/Registro cuantificable.xml');
+T = HabitTracker.habitXML2table('../Datos/Registro cuantificable.xml');
 
 %% Wake up, sleep and low stimulus times
 wakeUpFlag = T.Habit == 'Waking up';

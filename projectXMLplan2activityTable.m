@@ -41,7 +41,7 @@ dur = finish - start;
 Tact = table(name, start, finish, dur, notes, 'VariableNames', {'name', 'start', 'ending', 'duration', 'category'});
 
 activityXML = '../Datos/Actividades.xml';
-xsdFile = getXSDfile(activityXML);
+xsdFile = XmlTools.getXSDfile(activityXML);
 Tattrib = XmlTools.XSDfile2XSDattributeTable(xsdFile, 'activity');
 categ = cellstr(Tattrib{Tattrib.name == "category", 'enumeration'}{1});
 Tact.category = categorical(Tact.category, categ, categ, 'Protected', true);
