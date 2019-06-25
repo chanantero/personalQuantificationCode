@@ -164,6 +164,7 @@ classdef XmlTools
                 if strcmp(child.Tag, '#text') && textIsJustWhiteSpace(child.Data)
                     DOMnode.removeChild(theChild);
                 else
+                    XmlTools.removeWhiteSpaceNodes(theChild);
                     count = count + 1;
                 end
             end
