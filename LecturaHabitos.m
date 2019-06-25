@@ -1,5 +1,5 @@
 %% Read xml and generate a readable structure
-T = HabitTracker.habitXML2table('../Datos/Registro cuantificable.xml');
+T = HabitTracker.habitXML2table('../Datos/Hábitos/Registro cuantificable.xml');
 
 %% Wake up, sleep and low stimulus times
 wakeUpFlag = T.Habit == 'Waking up';
@@ -73,36 +73,7 @@ cmap = [[108 255 40]/255; [14 30 178]/255; 0 0 0];
 colormap(ax, cmap);
 ax.View = [0 -90];
 
-%% Quantificable habits
-T = sortrows(T, {'Date', 'Habit'}, 'ascend');
-
-% Select the desired habit
-fig = figure;
-
-% ind = T.Habit == 'TFM';
-% ax = subplot(3, 1, 1);
-% bar(ax, str2double(T.Value(ind)))
-% ax.XTick = 1:sum(ind);
-% ax.XTickLabels = cellstr(T.Date(ind));
-% ax.XTickLabelRotation = 70;
-% ax.YLabel.String = 'TFM';
-
-ind = find(T.Habit == 'Gym');
-ax = subplot(2, 1, 1);
-bar(ax, str2double(T.Value(ind)))
-numXTicks = 20;
-step = floor(numel(ind)/numXTicks);
-ax.XTick = 1:step:numel(ind);
-ax.XTickLabels = cellstr(T.Date(ind(ax.XTick)));
-ax.XTickLabelRotation = 70;
-ax.YLabel.String = 'Gym';
-
-ind = find(T.Habit == 'ColdApproach' | T.Habit == 'Cold approach');
-ax = subplot(2, 1, 2);
-bar(ax, str2double(T.Value(ind)))
-numXTicks = 20;
-step = floor(numel(ind)/numXTicks);
-ax.XTick = 1:step:numel(ind);
-ax.XTickLabels = cellstr(T.Date(ind(ax.XTick)));
-ax.XTickLabelRotation = 70;
-ax.YLabel.String = 'Number of approaches';
+%%
+habitXML = '../Datos/Hábitos/Registro cuantificable.xml';
+obj = HabitTracker(habitXML);
+obj.showHabits({'Cold approach', 'Cold Approach'}, {'Gym', 'Ejercicio'});

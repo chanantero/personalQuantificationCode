@@ -2,6 +2,7 @@ classdef HabitTracker < handle
     
     properties
         xml_file_name
+        habit_table
     end
     
     methods
@@ -16,28 +17,60 @@ classdef HabitTracker < handle
 
             switch input_format
                 case 'HabitBull'
-                    obj.habitBullExportToHabitXmlFile(file_name);
+                    HabitTracker.habitBullExportToHabitXmlFile(obj.xml_file_name, file_name);
             end
             
         end
         
-        function habitBullExportToHabitXmlFile(obj, habit_bull_file_name)
+        function loadHabits(obj)
+            obj.habit_table = HabitTracker.habitXML2table(obj.xml_file_name);
+            obj.habit_table = sortrows(obj.habit_table, {'Date', 'Habit'}, 'ascend');
+        end
+        
+        function showHabits(obj, varargin)
+            if ~habitTableIsLoaded()
+                obj.loadHabits();
+            end
+            
+            % Select the desired habit
+            num_axes = length(varargin);
+            axs = gobjects(num_axes, 1);
+            for i = 1:num_axes
+                axs(i) = subplot(num_axes, 1, i);
+            end
+            
+            for i = 1:num_axes
+                habit_names = varargin{i};
+                if ~iscell(habit_names)
+                    habit_names = {habit_names};
+                end
+                ind = ismember(string(obj.habit_table.Habit), habit_names);
+                plot(axs(i), obj.habit_table.Date(ind), cumsum(str2double(obj.habit_table.Value(ind))))
+                axs(i).YLabel.String = habit_names{1};
+            end
+            
+            function is_loaded = habitTableIsLoaded()
+                is_loaded = ~isempty(obj.habit_table);
+            end
+        end
+    end
+        
+    methods(Static)
+        function habitBullExportToHabitXmlFile(habit_xml_file_name, habit_bull_file_name)
             habit_bull_table = HabitTracker.habitBullExport2habitTable(habit_bull_file_name);
-            existing_habits_table = HabitTracker.habitXML2table(obj.xml_file_name);
+            existing_habits_table = HabitTracker.habitXML2table(habit_xml_file_name);
     
             habit_bull_table(habit_bull_table.Date < datetime(2018, 1, 1), :) = []; % Antes el h�bito de Cold approach se llamaba ColdApproach
             new_registers = getNewRegisters(habit_bull_table, existing_habits_table);
 
-            HabitTracker.habitTable2XML(new_registers, obj.xml_file_name);
+            HabitTracker.habitTable2XML(new_registers, habit_xml_file_name);
             
             function new_registers = getNewRegisters(registers, existing_registers)
                 [~, indNewRows] = setdiff(registers(:, {'Date', 'Habit'}), existing_registers(:, {'Date', 'Habit'}), 'rows');
                 new_registers = registers(indNewRows, :);
             end
         end
-    end
 
-    methods(Static)
         function T = habitXML2table(fileName)
             % fileName = '../Datos/Registro cuantificable.txt';
             
