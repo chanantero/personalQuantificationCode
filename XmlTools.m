@@ -161,9 +161,12 @@ classdef XmlTools
                 theChild = childNodes.item(count);
                 child = XmlTools.makeStructFromNode(theChild);
                 
-                if strcmp(child.Tag, '#text') && textIsJustWhiteSpace(child.Data)
-                    DOMnode.removeChild(theChild);
+                if strcmp(child.Tag, '#text')
+                    if  textIsJustWhiteSpace(child.Data)
+                        DOMnode.removeChild(theChild);
+                    end
                 else
+                    XmlTools.removeWhiteSpaceNodes(theChild);
                     count = count + 1;
                 end
             end
